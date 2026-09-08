@@ -1,5 +1,16 @@
 # TreeSeed Identity
 
+## Publication and runtime ownership
+
+This repository publishes `@treeseed/identity` to npm and unchanged custody assets
+to GitHub Releases. RC tags use staging; stable tags use main/production. Required
+checks seal the tarball and CycloneDX SBOM with SDK release evidence; publication
+verifies the exact protected head and reads the registry bytes back without rebuilding.
+
+Deployment owns Keycloak/SPIRE provisioning, exact upstream image digests, and any
+TreeSeed custom image builds (including baked-in login themes). Identity requires
+no Docker Hub publishing credential. Human review remains at main PRs only.
+
 Independent authentication integration for sovereign TreeSeed installations.
 Applications share sign-in, not browser cookies or authorization.
 

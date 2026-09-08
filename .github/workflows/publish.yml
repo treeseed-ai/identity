@@ -1,12 +1,12 @@
 name: Publish accepted candidate
 on:
   push:
-    tags: ['0.*.*-rc.*']
-permissions: { contents: write, actions: read }
+    tags: ['*.*.*']
+permissions: { contents: write, actions: read, id-token: write }
 jobs:
   publish:
     runs-on: ubuntu-24.04
-    environment: staging
+    environment: ${{ contains(github.ref_name, '-') && 'staging' || 'production' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with: { fetch-depth: 0 }
@@ -22,22 +22,31 @@ jobs:
       - name: Retrieve exact verified staging artifact
         env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
         run: |
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/staging)"
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then candidate_branch=staging; else candidate_branch=main; fi
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "origin/${candidate_branch}")"
           test "$GITHUB_REF_NAME" = "$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
-          run_id="$(gh run list --workflow verify.yml --branch staging --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          run_id="$(gh run list --workflow verify.yml --branch "$candidate_branch" --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
           test -n "$run_id"
           gh run download "$run_id" --name "identity-candidate-${GITHUB_SHA}" --dir candidate
           cd candidate
           sha256sum --check SHA256SUMS
+      - name: Install custody tooling without building
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node scripts/release-custody.mjs verify
       - name: Publish without rebuilding
         env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
-        run: npm publish candidate/*.tgz --ignore-scripts --access public --tag rc
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then channel=rc; else channel=latest; fi
+          npm publish ./candidate/*.tgz --ignore-scripts --access public --tag "$channel"
       - name: Verify registry byte identity
         run: |
           mkdir readback
           npm pack "@treeseed/identity@${GITHUB_REF_NAME}" --ignore-scripts --pack-destination readback
           cd readback
-          sha256sum --check ../candidate/SHA256SUMS
+          node ../scripts/release-custody.mjs readback
       - name: Publish unchanged release artifacts
         env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
-        run: gh release create "$GITHUB_REF_NAME" candidate/*.tgz candidate/SHA256SUMS --verify-tag --prerelease --generate-notes
+        run: |
+          flags=()
+          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" candidate/*.tgz candidate/SHA256SUMS candidate/sbom.cdx.json candidate/release-evidence-v1.json --verify-tag --generate-notes "${flags[@]}"
