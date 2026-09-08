@@ -1,0 +1,36 @@
+{
+  "name": "identity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.7.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "npm install",
+    "setup:ci": "npm ci",
+    "config": "treeseed config",
+    "preflight": "treeseed preflight",
+    "dev": "treeseed dev",
+    "capacity": "treeseed capacity",
+    "check": "astro check",
+    "build:web": "astro build",
+    "build": "npm run build:web",
+    "deploy": "treeseed release",
+    "preview": "treeseed preview",
+    "sync": "treeseed sync",
+    "verify": "npm run check && npm run build"
+  },
+  "dependencies": {
+    "@treeseed/agent": "0.13.0-rc.41",
+    "@treeseed/cli": "0.13.0-rc.45",
+    "@treeseed/core": "0.12.60-rc.8",
+    "@treeseed/sdk": "0.13.0-rc.67",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.6.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,18 @@
+---
+title: Use parent-root agent execution
+slug: use-parent-root-agent-execution
+description: Default integrated engineering projects to parent repository execution.
+summary: Agents run from the software root while content remains in the TreeSeed tenant root.
+date: 2026-06-02
+status: live
+groupIds:
+  - agents
+decisionType: approved
+rationale: Agents need access to the parent software repository while TreeSeed content stays isolated in the docs tenant.
+authority: Engineering steward
+primaryContributor: engineering-steward
+relatedObjectives:
+  - ship-the-first-guided-change
+---
+
+Integrated engineering projects need agents to see the software they guide, so this starter sets `projectRoot: ..`.

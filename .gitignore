@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.astro/
+.agent-worktrees/
+.treeseed/generated/
+.treeseed/test-reports/
+public/books/

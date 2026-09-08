@@ -1,0 +1,17 @@
+---
+title: Ship the first guided change
+slug: ship-the-first-guided-change
+description: Correct the release-channel normalizer through the complete governed engineering workflow.
+summary: Proves planning, test-first implementation, review, documentation, and release readiness against a bounded source defect.
+date: 2026-06-02
+status: in progress
+groupIds:
+  - delivery
+timeHorizon: near-term
+motivation: The starter release-channel normalizer fails to recognize uppercase and mixed-case production aliases, providing a safe real defect for the autonomous engineering workflow.
+primaryContributor: architect
+---
+
+Correct `src/lib/normalize-release-channel.ts` so surrounding whitespace and casing are normalized before the aliases `production` and `prod` are mapped to `stable`.
+
+Acceptance requires a tester-authored regression test that fails against the recorded exact base ref, an implementation made from the test integration ref without modifying the test, passing verification, reviewer approval (including one fixture revision cycle), linked documentation, release-readiness evidence, a workday summary, and exactly-once usage settlement.
