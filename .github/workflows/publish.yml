@@ -1,0 +1,43 @@
+name: Publish accepted candidate
+on:
+  push:
+    tags: ['0.*.*-rc.*']
+permissions: { contents: write, actions: read }
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 24, registry-url: 'https://registry.npmjs.org' }
+      - name: Require publication authority
+        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo 'NPM_TOKEN is not available to Identity staging. Configure the existing publication authority for this repository.' >&2
+            exit 1
+          fi
+      - name: Retrieve exact verified staging artifact
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/staging)"
+          test "$GITHUB_REF_NAME" = "$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          run_id="$(gh run list --workflow verify.yml --branch staging --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          test -n "$run_id"
+          gh run download "$run_id" --name "identity-candidate-${GITHUB_SHA}" --dir candidate
+          cd candidate
+          sha256sum --check SHA256SUMS
+      - name: Publish without rebuilding
+        env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
+        run: npm publish candidate/*.tgz --ignore-scripts --access public --tag rc
+      - name: Verify registry byte identity
+        run: |
+          mkdir readback
+          npm pack "@treeseed/identity@${GITHUB_REF_NAME}" --ignore-scripts --pack-destination readback
+          cd readback
+          sha256sum --check ../candidate/SHA256SUMS
+      - name: Publish unchanged release artifacts
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: gh release create "$GITHUB_REF_NAME" candidate/*.tgz candidate/SHA256SUMS --verify-tag --prerelease --generate-notes
