@@ -2,6 +2,15 @@
 
 ## Publication and runtime ownership
 
+The browser OIDC adapter is a server-side confidential-client building block,
+not an application session store. Applications must supply atomic, browser-bound
+transaction storage, keep returned tokens server-side, and issue their own secure
+HttpOnly host-only session cookies. Deployment supplies the authorized HTTPS
+transport and private-route/DNS protections. The adapter uses maintained OAuth
+protocol validation, S256 PKCE, state, nonce, and signed ID-token verification;
+it never assigns team roles or links accounts by email. Live applications are not
+yet migrated to it.
+
 This repository publishes `@treeseed/identity` to npm and unchanged custody assets
 to GitHub Releases. RC tags use staging; stable tags use main/production. Required
 checks seal the tarball and CycloneDX SBOM with SDK release evidence; publication
