@@ -37,11 +37,15 @@ jobs:
         env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }
         run: |
           if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then channel=rc; else channel=latest; fi
-          npm publish ./candidate/*.tgz --ignore-scripts --access public --tag "$channel"
+          npm publish ./candidate/*.tgz --ignore-scripts --access public --provenance --tag "$channel"
       - name: Verify registry byte identity
         run: |
           mkdir readback
-          npm pack "@treeseed/identity@${GITHUB_REF_NAME}" --ignore-scripts --pack-destination readback
+          for attempt in $(seq 1 60); do
+            if npm pack "@treeseed/identity@${GITHUB_REF_NAME}" --ignore-scripts --pack-destination readback; then break; fi
+            if [ "$attempt" = 60 ]; then exit 1; fi
+            sleep 3
+          done
           cd readback
           node ../scripts/release-custody.mjs readback
       - name: Publish unchanged release artifacts
