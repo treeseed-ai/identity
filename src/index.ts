@@ -6,3 +6,4 @@ export * from './native-oidc.js';
 export * from './public-session.js';
 export * from './resource-discovery.js';
 export * from './signing-keys.js';
+export * from './application-session.js';

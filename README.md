@@ -15,6 +15,15 @@ client and user, even when refresh returns no ID token. Transactions bind those
 settings; changes require a new sign-in. Live applications are not
 yet migrated to it.
 
+`createApplicationSession` is the shared server-side application integration.
+Configure the API resource, trusted issuer, callback, a distinct `__Host-` cookie
+name and Deployment-backed workload credentials. `login` and `callback` return
+redirect responses containing opaque cookies only; `session` returns an API
+credential **for server-side requests only**. Never serialize that value into
+HTML, browser JSON or storage. `logout` requires same-origin POST. The API owns
+encrypted transaction/token storage and application authorization. Applications
+do not collect passwords or implement their own refresh-token rotation.
+
 This repository publishes `@treeseed/identity` to npm and unchanged custody assets
 to GitHub Releases. RC tags use staging; stable tags use main/production. Required
 checks seal the tarball and CycloneDX SBOM with SDK release evidence; publication
