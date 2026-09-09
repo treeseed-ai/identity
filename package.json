@@ -1,6 +1,6 @@
 {
   "name": "@treeseed/identity",
-  "version": "0.1.0-rc.9",
+  "version": "0.1.0-rc.10",
   "description": "Independent TreeSeed identity and session integration adapters.",
   "license": "Apache-2.0",
   "type": "module",

@@ -11,7 +11,9 @@ export interface AccessTokenVerifierOptions {
   audience: string;
   profile: 'keycloak' | 'rfc9068';
   verificationKey: CryptoKey | JWTVerifyGetKey;
-  resolvePrincipal(identity: ExternalIdentity): Promise<Pick<IdentityPrincipal, 'principalId' | 'kind'> | null>;
+  /** An application-owned workload registration may additionally bind the
+   * originating OAuth client. This is not a token-supplied role or permission. */
+  resolvePrincipal(identity: ExternalIdentity): Promise<(Pick<IdentityPrincipal, 'principalId' | 'kind'> & { clientId?: string }) | null>;
   maxLifetimeSeconds?: number;
   now?: () => Date;
 }
@@ -46,6 +48,8 @@ export function createAccessTokenVerifier(options: AccessTokenVerifierOptions) {
       const identity = externalIdentitySchema.parse({ issuer, subject: payload.sub });
       const principal = await options.resolvePrincipal(identity);
       if (!principal) throw new IdentityAuthenticationError();
+      if (principal.clientId !== undefined && (!principal.clientId.trim()
+        || (options.profile === 'keycloak' ? payload.azp : payload.client_id) !== principal.clientId)) throw new IdentityAuthenticationError();
       return identityPrincipalSchema.parse({ principalId: principal.principalId, kind: principal.kind, identity, audience, scopes });
     } catch { throw new IdentityAuthenticationError(); }
   };
