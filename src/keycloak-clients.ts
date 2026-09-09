@@ -33,7 +33,9 @@ function desiredClient(input: KeycloakApplication) {
     clientAuthenticatorType: 'client-jwt', serviceAccountsEnabled: input.kind === 'workload',
     standardFlowEnabled: input.kind === 'browser', implicitFlowEnabled: false, directAccessGrantsEnabled: false,
     fullScopeAllowed: false, consentRequired: false, redirectUris: sorted(redirects), webOrigins: [],
-    defaultClientScopes: ['basic'], optionalClientScopes: sorted(input.scopes),
+    // Keycloak attaches its service-account identity scope when enabling this
+    // flow. Declare it only for workload clients; it is not a role grant.
+    defaultClientScopes: input.kind === 'workload' ? ['basic', 'service_account'] : ['basic'], optionalClientScopes: sorted(input.scopes),
     attributes: { 'treeseed.managed-by': owner, 'jwt.credential.certificate': input.certificate,
       'token.endpoint.auth.signing.alg': 'RS256', 'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '300' },
     protocolMappers: [{ name: 'treeseed-resource', protocol: 'openid-connect', protocolMapper: 'oidc-audience-mapper', consentRequired: false,

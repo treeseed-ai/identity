@@ -58,6 +58,15 @@ test('declares real Keycloak mapper defaults and ignores only its generated mapp
   await assert.rejects(f.registry.ensure(application), /drift in protocolMappers/);
   assert.equal(f.requests.filter(value => value.method === 'POST').length, 1);
 });
+test('declares the Keycloak service-account scope only for asymmetric workload clients', async () => {
+  const f = fixture();
+  const workload = { ...application, kind: 'workload' as const, redirectUris: [] };
+  await f.registry.ensure(workload);
+  assert.deepEqual(f.record().defaultClientScopes, ['basic', 'service_account']);
+  assert.equal((await f.registry.ensure(workload)).action, 'noop');
+  f.record().defaultClientScopes.push('roles');
+  await assert.rejects(f.registry.ensure(workload), /drift in defaultClientScopes/);
+});
 test('denies invalid redirects, direct secrets, privileged scopes and workload browser flows before transport', async () => {
   for (const input of [
     { ...application, redirectUris: ['https://admin.test/*'] },
