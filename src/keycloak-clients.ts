@@ -1,4 +1,5 @@
 import { identityEndpointSchema, resourceTokenRequestSchema, type IdentityCredentials } from '@treeseed/sdk/identity';
+import { ensureManagedScopes, validateManagedScopes } from './keycloak-scopes.js';
 
 interface ApplicationBase {
   clientId: string;
@@ -21,6 +22,7 @@ const mappers = (value: unknown) => Array.isArray(value) ? value.map(({ id: _id,
 
 function desiredClient(input: KeycloakApplication) {
   resourceTokenRequestSchema.parse({ resource: input.resource, scopes: input.scopes });
+  validateManagedScopes(input.scopes);
   const native = input.kind === 'native';
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/u.test(input.clientId) || input.clientId === 'treeseed-identity-reconciler'
     || !['browser', 'workload', 'native'].includes(input.kind)
@@ -57,7 +59,7 @@ function desiredClient(input: KeycloakApplication) {
 }
 
 /** Initial registration and repeatable read-back, not silent drift overwrite.
- * All scopes must already be provisioned by Deployment. An existing unmanaged
+ * Custom scope labels are provisioned with no role/claim grants. An existing unmanaged
  * client or changed configuration requires an explicit reconciliation plan.
  * Never grants realm roles, API memberships, or application authorization.
  */
@@ -104,7 +106,9 @@ export function createKeycloakApplicationRegistry(options: {
   }
   return { async ensure(input: KeycloakApplication) {
     const expected = desiredClient(input), existing = await read(input.clientId);
-    if (existing) { verify(existing, expected); return { action: 'noop' as const, clientId: input.clientId, id: existing.id as string }; }
+    if (existing) verify(existing, expected);
+    await ensureManagedScopes(request, input.scopes);
+    if (existing) return { action: 'noop' as const, clientId: input.clientId, id: existing.id as string };
     await request('clients', 'POST', expected);
     const actual = await read(input.clientId);
     if (!actual) throw new Error('Identity application read-back is missing');

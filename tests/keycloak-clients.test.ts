@@ -7,6 +7,7 @@ const application: KeycloakApplication = { clientId: 'admin-browser', kind: 'bro
   scopes: ['read'], certificate: 'A'.repeat(128), redirectUris: ['https://admin.test/auth/callback'] };
 function fixture() {
   let record: Record<string, any> | null = null;
+  const scopes: Record<string, any>[] = [];
   const requests: { url: string; method: string; body?: Record<string, any> }[] = [];
   const registry = createKeycloakApplicationRegistry({ issuer,
     credentials: { async token(input) {
@@ -16,6 +17,11 @@ function fixture() {
       assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer synthetic-token');
       const request = { url: String(url), method: init?.method ?? 'GET', ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}) };
       requests.push(request);
+      if (request.url.endsWith('/scope-mappings')) return Response.json({});
+      if (request.url.endsWith('/client-scopes')) {
+        if (request.method === 'POST') { scopes.push({ ...request.body, id: `scope-${scopes.length}` }); return new Response(null, { status: 201 }); }
+        return Response.json(scopes);
+      }
       if (request.method === 'POST') { record = { ...request.body, id: 'generated-id' }; return new Response(null, { status: 201 }); }
       return Response.json(record ? [record] : []);
     },
@@ -26,7 +32,7 @@ test('registers only public client metadata, reads back, and repeats noop', asyn
   const f = fixture();
   assert.deepEqual(await f.registry.ensure(application), { action: 'create', clientId: application.clientId, id: 'generated-id' });
   assert.deepEqual(await f.registry.ensure(application), { action: 'noop', clientId: application.clientId, id: 'generated-id' });
-  assert.equal(f.requests.filter(value => value.method === 'POST').length, 1);
+  assert.equal(f.requests.filter(value => value.method === 'POST' && value.url.endsWith('/clients')).length, 1);
   assert.equal(f.record().directAccessGrantsEnabled, false); assert.equal(f.record().implicitFlowEnabled, false);
   assert.equal(f.record().fullScopeAllowed, false); assert.equal(f.record().clientAuthenticatorType, 'client-jwt');
   assert.deepEqual(f.record().defaultClientScopes, ['basic']);
@@ -38,7 +44,7 @@ test('never adopts unmanaged existing clients or overwrites drift', async () => 
   const managed = fixture(); await managed.registry.ensure(application);
   managed.record().directAccessGrantsEnabled = true;
   await assert.rejects(managed.registry.ensure(application), /drift in directAccessGrantsEnabled/);
-  assert.equal(managed.requests.filter(value => value.method !== 'GET').length, 1);
+  assert.equal(managed.requests.filter(value => value.method !== 'GET').length, 2);
 });
 test('rejects broadened audiences and scope grants on read-back', async () => {
   const f = fixture(); await f.registry.ensure(application);
@@ -56,7 +62,7 @@ test('declares real Keycloak mapper defaults and ignores only its generated mapp
   await assert.rejects(f.registry.ensure(application), /drift in protocolMappers/);
   mapper.config['userinfo.token.claim'] = 'false'; mapper.consentRequired = true;
   await assert.rejects(f.registry.ensure(application), /drift in protocolMappers/);
-  assert.equal(f.requests.filter(value => value.method === 'POST').length, 1);
+  assert.equal(f.requests.filter(value => value.method === 'POST' && value.url.endsWith('/clients')).length, 1);
 });
 test('declares the Keycloak service-account scope only for asymmetric workload clients', async () => {
   const f = fixture();
