@@ -3,3 +3,4 @@ export * from './browser-oidc.js';
 export * from './workload-credentials.js';
 export * from './device-authorization.js';
 export * from './native-oidc.js';
+export * from './public-session.js';
