@@ -49,7 +49,7 @@ export async function createWorkloadCredentials(options: WorkloadCredentialOptio
         const selected = resourceTokenRequestSchema.parse(input);
         if (!resources.has(selected.resource)) throw new IdentityAuthenticationError();
         const response = await oauth.clientCredentialsGrantRequest(server, client, auth,
-          { resource: selected.resource, scope: selected.scopes.join(' ') }, http);
+          { resource: selected.resource, ...(selected.scopes.length ? { scope: selected.scopes.join(' ') } : {}) }, http);
         const tokens = await oauth.processClientCredentialsResponse(server, client, response);
         if (tokens.token_type.toLowerCase() !== 'bearer' || tokens.refresh_token !== undefined) throw new IdentityAuthenticationError();
         const verify = createAccessTokenVerifier({ issuer, audience: selected.resource, verificationKey: options.verificationKey,
