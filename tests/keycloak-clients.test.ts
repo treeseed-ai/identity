@@ -90,3 +90,38 @@ test('redacts provider and credential failures and refuses redirects', async () 
     await assert.rejects(registry.ensure(application), error => error instanceof Error && error.message === 'Identity application registry unavailable');
   }
 });
+
+test('registers public native PKCE and device clients with no client key or password grant', async () => {
+  for (const redirectUris of [['http://127.0.0.1/callback'], ['http://[::1]/callback'], []]) {
+    const f = fixture();
+    const native: KeycloakApplication = { clientId: 'trsd', kind: 'native', resource: application.resource,
+      scopes: ['read'], redirectUris, deviceAuthorization: true };
+    assert.equal((await f.registry.ensure(native)).action, 'create');
+    assert.equal((await f.registry.ensure(native)).action, 'noop');
+    const record = f.record();
+    assert.equal(record.publicClient, true); assert.equal(record.serviceAccountsEnabled, false);
+    assert.equal(record.standardFlowEnabled, redirectUris.length > 0);
+    assert.equal(record.directAccessGrantsEnabled, false); assert.equal(record.implicitFlowEnabled, false);
+    assert.equal(record.attributes['pkce.code.challenge.method'], 'S256');
+    assert.equal(record.attributes['oauth2.device.authorization.grant.enabled'], 'true');
+    assert.equal(record.attributes['jwt.credential.certificate'], undefined);
+    assert.equal(record.secret, undefined); assert.equal(record.consentRequired, true);
+    assert.deepEqual(record.defaultClientScopes, ['basic']);
+    record.publicClient = false;
+    await assert.rejects(f.registry.ensure(native), /drift/);
+  }
+});
+
+test('rejects nonliteral or broadened native callbacks before credential or HTTP access', async () => {
+  for (const redirectUris of [['https://admin.test/callback'], ['http://localhost/callback'], ['http://127.0.0.1:*/*'],
+    ['http://127.0.0.1:1234/callback'], ['http://127.0.0.1/callback?next=foreign'], ['http://127.0.0.1/../callback'], ['http://user@127.0.0.1/callback']]) {
+    const f = fixture();
+    await assert.rejects(f.registry.ensure({ clientId: 'trsd', kind: 'native', resource: application.resource,
+      scopes: [], redirectUris, deviceAuthorization: true }));
+    assert.equal(f.requests.length, 0);
+  }
+  const f = fixture();
+  await assert.rejects(f.registry.ensure({ clientId: 'trsd', kind: 'native', resource: application.resource,
+    scopes: [], redirectUris: [], deviceAuthorization: false }));
+  assert.equal(f.requests.length, 0);
+});

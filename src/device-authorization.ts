@@ -44,9 +44,14 @@ export async function createDeviceAuthorizationClient(options: DeviceAuthorizati
       try {
         const selected = resourceTokenRequestSchema.parse(input);
         if (!resources.has(selected.resource)) throw new IdentityAuthenticationError();
+        // Keycloak applies its S256 client policy to device authorization too.
+        // Keep the proof private to this pending authorization, never in the
+        // user-facing verification URI or persisted CLI configuration.
+        let verifier = options.profile === 'keycloak' ? oauth.generateRandomCodeVerifier() : '';
         const response = await oauth.processDeviceAuthorizationResponse(server, client,
           await oauth.deviceAuthorizationRequest(server, client, oauth.None(), {
             resource: selected.resource, ...(selected.scopes.length ? { scope: selected.scopes.join(' ') } : {}),
+            ...(verifier ? { code_challenge_method: 'S256', code_challenge: await oauth.calculatePKCECodeChallenge(verifier) } : {}),
           }, http));
         const link = (value: string) => {
           const url = new URL(value);
@@ -61,7 +66,7 @@ export async function createDeviceAuthorizationClient(options: DeviceAuthorizati
         let code = response.device_code, interval = (response.interval ?? 5) * 1000;
         const expiresAt = now() + response.expires_in * 1000, cancellation = new AbortController();
         let nextPollAt = now() + interval, busy = false, terminal = false;
-        const end = () => { terminal = true; code = ''; cancellation.abort(); };
+        const end = () => { terminal = true; code = ''; verifier = ''; cancellation.abort(); };
         return {
           userCode: response.user_code, verificationUri, verificationUriComplete, expiresAt,
           cancel: end,
@@ -72,7 +77,8 @@ export async function createDeviceAuthorizationClient(options: DeviceAuthorizati
             busy = true; nextPollAt = now() + interval;
             try {
               const raw = await oauth.deviceCodeGrantRequest(server, client, oauth.None(), code,
-                { ...http, signal: cancellation.signal, additionalParameters: { resource: selected.resource } });
+                { ...http, signal: cancellation.signal, additionalParameters: { resource: selected.resource,
+                  ...(verifier ? { code_verifier: verifier } : {}) } });
               const tokens = await oauth.processDeviceCodeResponse(server, client, raw);
               if (terminal || now() >= expiresAt || tokens.token_type.toLowerCase() !== 'bearer') throw new IdentityAuthenticationError();
               const verify = createAccessTokenVerifier({ issuer, audience: selected.resource, verificationKey: options.verificationKey,

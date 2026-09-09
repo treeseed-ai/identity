@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { generateKeyPair, SignJWT } from 'jose';
 import { createDeviceAuthorizationClient } from '../dist/device-authorization.js';
 
 const issuer = 'https://identity.example.test/realms/local', resource = 'https://api.example.test';
 const pair = await generateKeyPair('RS256');
 async function fixture(options: { error?: string; audience?: string; kind?: 'human' | 'service'; verification?: string; tokenEndpoint?: string } = {}) {
-  let time = Date.now(), polls = 0;
+  let time = Date.now(), polls = 0, challenge = '';
   const transport: typeof fetch = async (url, init) => {
     assert.equal(init?.redirect, 'error');
     if (String(url).includes('.well-known')) return Response.json({ issuer, device_authorization_endpoint: `${issuer}/device`, token_endpoint: options.tokenEndpoint ?? `${issuer}/token` });
@@ -14,9 +15,16 @@ async function fixture(options: { error?: string; audience?: string; kind?: 'hum
     assert.equal(params.get('client_id'), 'cli');
     assert.equal(params.get('resource'), resource);
     assert.equal(params.has('client_secret'), false);
-    if (String(url).endsWith('/device')) return Response.json({ device_code: 'private-device-code', user_code: 'ABCD', verification_uri: options.verification ?? `${issuer}/verify`, expires_in: 300, interval: 5 });
+    if (String(url).endsWith('/device')) {
+      assert.equal(params.get('code_challenge_method'), 'S256');
+      assert.equal(params.has('code_verifier'), false);
+      challenge = params.get('code_challenge')!; assert.match(challenge, /^[A-Za-z0-9_-]{43}$/u);
+      return Response.json({ device_code: 'private-device-code', user_code: 'ABCD', verification_uri: options.verification ?? `${issuer}/verify`, expires_in: 300, interval: 5 });
+    }
     polls++;
     assert.equal(params.get('device_code'), 'private-device-code');
+    assert.match(params.get('code_verifier')!, /^[A-Za-z0-9_-]{43,128}$/u);
+    assert.equal(createHash('sha256').update(params.get('code_verifier')!).digest('base64url'), challenge);
     if (options.error) return Response.json({ error: options.error, error_description: 'sensitive diagnostic' }, { status: 400 });
     const access = await new SignJWT({ typ: 'Bearer', azp: 'cli', scope: 'library:read' }).setProtectedHeader({ alg: 'RS256' })
       .setIssuer(issuer).setAudience(options.audience ?? resource).setSubject('human').setIssuedAt().setExpirationTime('2m').sign(pair.privateKey);
@@ -24,8 +32,18 @@ async function fixture(options: { error?: string; audience?: string; kind?: 'hum
   };
   const client = await createDeviceAuthorizationClient({ issuer, clientId: 'cli', resources: [resource], verificationKey: pair.publicKey,
     profile: 'keycloak', transport, now: () => time, resolvePrincipal: async () => ({ principalId: 'existing-user', kind: options.kind ?? 'human' }) });
-  return { client, advance: (milliseconds: number) => { time += milliseconds; }, polls: () => polls };
+  return { client, advance: (milliseconds: number) => { time += milliseconds; }, polls: () => polls, challenge: () => challenge };
 }
+test('device PKCE proofs are per-authorization and never exposed by the pending handle', async () => {
+  const f = await fixture(), first = await f.client.begin({ resource, scopes: [] });
+  const challenge = f.challenge();
+  const second = await f.client.begin({ resource, scopes: [] });
+  assert.notEqual(f.challenge(), challenge);
+  assert.equal(JSON.stringify(first).includes(challenge), false);
+  assert.equal('verifier' in first, false);
+  first.cancel(); second.cancel();
+  await assert.rejects(first.poll()); await assert.rejects(second.poll());
+});
 test('device code stays private; polling is rate limited and authorization is single-use', async () => {
   const f = await fixture(), pending = await f.client.begin({ resource, scopes: ['library:read'] });
   assert.equal(JSON.stringify(pending).includes('private-device-code'), false);

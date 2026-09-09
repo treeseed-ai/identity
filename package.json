@@ -1,6 +1,6 @@
 {
   "name": "@treeseed/identity",
-  "version": "0.1.0-rc.15",
+  "version": "0.1.0-rc.16",
   "description": "Independent TreeSeed identity and session integration adapters.",
   "license": "Apache-2.0",
   "type": "module",
@@ -29,7 +29,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@treeseed/sdk": "0.13.0-rc.107",
+    "@treeseed/sdk": "0.13.0-rc.108",
     "jose": "6.2.12",
     "oauth4webapi": "3.8.8"
   },
