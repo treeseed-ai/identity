@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { generateKeyPair, SignJWT } from 'jose';
-import { createAccessTokenVerifier } from '../src/access-token.ts';
+import { createAccessTokenVerifier } from '../dist/index.js';
 
 for (const profile of ['keycloak', 'rfc9068'] as const) {
   test(`${profile}: workload registration binds the originating client, not claims or email`, async () => {
