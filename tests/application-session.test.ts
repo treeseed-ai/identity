@@ -43,6 +43,20 @@ test('session credentials remain server-side and cannot cross API resources', as
   await assert.rejects(fixture({ foreignResource: true }).adapter.session(request));
   const f = fixture(); assert.equal(await f.adapter.session(new Request('https://admin.example.test/app/')), null); assert.equal(f.calls.length, 0);
 });
+test('same-origin navigation survives sign-in and is bound to this login attempt', async () => {
+  const f = fixture();
+  const login = await f.adapter.login(new Request('https://admin.example.test/auth/sign-in'), '/team-invites/example/accept');
+  const cookies = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+  const result = await f.adapter.callback(new Request('https://admin.example.test/auth/callback?code=code&state=state', { headers: { cookie: cookies } }));
+  assert.equal(result.headers.get('location'), 'https://admin.example.test/team-invites/example/accept');
+  await assert.rejects(f.adapter.callback(new Request('https://admin.example.test/auth/callback?code=code&state=state', {
+    headers: { cookie: cookies.replace(/-login=[^;]+/u, `-login=${binding}`) },
+  })));
+  for (const destination of ['https://attacker.test/', '//attacker.test/', '\\\\attacker.test/'])
+    await assert.rejects(f.adapter.login(new Request('https://admin.example.test/auth/sign-in'), destination));
+  const switchAccount = await f.adapter.login(new Request('https://admin.example.test/auth/sign-in'), '/app/', { promptForLogin: true });
+  assert.equal(new URL(switchAccount.headers.get('location')!).searchParams.get('prompt'), 'login');
+});
 test('logout requires same-origin POST and removes only application cookies', async () => {
   const f = fixture(), headers = { cookie: `__Host-admin-session=${session}` };
   for (const request of [new Request('https://admin.example.test/auth/logout', { headers }), new Request('https://admin.example.test/auth/logout', { method: 'POST', headers: { ...headers, origin: 'https://attacker.test' } })])
