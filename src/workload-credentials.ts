@@ -1,4 +1,5 @@
 import * as oauth from 'oauth4webapi';
+import { decodeJwt } from 'jose';
 import { identityEndpointSchema, resourceTokenRequestSchema } from '@treeseed/sdk/identity';
 import { createAccessTokenVerifier, IdentityAuthenticationError, type AccessTokenVerifierOptions } from './access-token.js';
 
@@ -54,6 +55,8 @@ export async function createWorkloadCredentials(options: WorkloadCredentialOptio
         const verify = createAccessTokenVerifier({ issuer, audience: selected.resource, verificationKey: options.verificationKey,
           resolvePrincipal: options.resolvePrincipal, profile: options.profile, maxLifetimeSeconds: options.maxLifetimeSeconds });
         const principal = await verify(tokens.access_token);
+        const verifiedClaims = decodeJwt(tokens.access_token);
+        if ((options.profile === 'keycloak' ? verifiedClaims.azp : verifiedClaims.client_id) !== options.clientId) throw new IdentityAuthenticationError();
         if (principal.kind !== 'service' || selected.scopes.some(scope => !principal.scopes.includes(scope))) throw new IdentityAuthenticationError();
         // Audience verification is mandatory even when a provider ignores the
         // resource parameter. Never forward a token intended for another API.

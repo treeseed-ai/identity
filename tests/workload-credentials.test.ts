@@ -6,7 +6,7 @@ import { createWorkloadCredentials } from '../dist/workload-credentials.js';
 const issuer = 'https://identity.example.test/realms/local';
 const resource = 'https://api.example.test';
 const pair = await generateKeyPair('RS256');
-async function fixture(options: { audience?: string; kind?: 'human' | 'service'; scopes?: string; revoked?: boolean; endpoint?: string; failure?: boolean } = {}) {
+async function fixture(options: { audience?: string; clientId?: string; kind?: 'human' | 'service'; scopes?: string; revoked?: boolean; endpoint?: string; failure?: boolean } = {}) {
   let requests = 0;
   const transport: typeof fetch = async (_url, init) => {
     assert.equal(init?.redirect, 'error');
@@ -19,7 +19,7 @@ async function fixture(options: { audience?: string; kind?: 'human' | 'service';
     assert.ok(body.get('client_assertion'));
     assert.equal(body.has('client_secret'), false);
     if (options.failure) return Response.json({ error: 'invalid_client', error_description: 'sensitive-provider-diagnostic' }, { status: 401 });
-    const token = await new SignJWT({ typ: 'Bearer', scope: options.scopes ?? 'library:read' }).setProtectedHeader({ alg: 'RS256' })
+    const token = await new SignJWT({ typ: 'Bearer', azp: options.clientId ?? 'runner', scope: options.scopes ?? 'library:read' }).setProtectedHeader({ alg: 'RS256' })
       .setIssuer(issuer).setAudience(options.audience ?? resource).setSubject('runner').setIssuedAt().setExpirationTime('2m').sign(pair.privateKey);
     return Response.json({ access_token: token, token_type: 'Bearer', expires_in: 120 });
   };
@@ -43,7 +43,7 @@ test('unconfigured resource is denied before credential exchange', async () => {
   assert.equal(requests(), 0);
 });
 test('wrong audience, human principal, missing scope and revocation never produce credentials', async () => {
-  for (const options of [{ audience: 'https://another-market.test' }, { kind: 'human' as const }, { scopes: '' }, { revoked: true }]) {
+  for (const options of [{ audience: 'https://another-market.test' }, { clientId: 'other-client' }, { kind: 'human' as const }, { scopes: '' }, { revoked: true }]) {
     const { client } = await fixture(options);
     await assert.rejects(client.credentials({ resource, scopes: ['library:read'] }), { code: 'identity_authentication_failed' });
   }
