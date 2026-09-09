@@ -62,6 +62,9 @@ export async function createBrowserOidcClient(options: BrowserOidcOptions) {
     return principal;
   };
   return {
+    /** Revalidate a saved server-side access token and current local mapping
+     * before use; this never expands the configured resource or scopes. */
+    verifyAccessToken: validate,
     /** Caller serializes refreshes and atomically replaces its server-side token record. */
     async refresh(refreshToken: string, expectedIdentity: { issuer: string; subject: string }) {
       try {
