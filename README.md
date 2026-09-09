@@ -8,7 +8,11 @@ transaction storage, keep returned tokens server-side, and issue their own secur
 HttpOnly host-only session cookies. Deployment supplies the authorized HTTPS
 transport and private-route/DNS protections. The adapter uses maintained OAuth
 protocol validation, S256 PKCE, state, nonce, and signed ID-token verification;
-it never assigns team roles or links accounts by email. Live applications are not
+it never assigns team roles or links accounts by email. Browser clients configure
+one exact API resource, requested scopes, verification keys and local principal
+resolver. Both initial and refreshed access tokens must match that resource,
+client and user, even when refresh returns no ID token. Transactions bind those
+settings; changes require a new sign-in. Live applications are not
 yet migrated to it.
 
 This repository publishes `@treeseed/identity` to npm and unchanged custody assets
@@ -37,8 +41,10 @@ discover trust: remote key resolution requires Deployment's approved network tra
 
 ## Remaining work
 
-Hosted login, sessions, discovery/refresh, CLI flows, federation and workload integration
-are tracked in #1 and Platform #467. This is not an accepted live SSO deployment.
+Adapters for discovery, native/device CLI sign-in, refresh, browser SSO and asymmetric
+workloads are published. Actual application integration, managed policy reconciliation,
+workload attestation and live migration remain tracked in #1 and Platform #467.
+This is not an accepted live SSO deployment.
 
 Run `npm ci` then `npm run verify`. SDK owns contracts, Deployment owns provisioning,
 and APIs own resource permissions. Knowledge lives in `treeseed-ai/identity-library`.
