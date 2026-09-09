@@ -39,10 +39,32 @@ export async function createBrowserOidcClient(options: BrowserOidcOptions) {
   for (const endpoint of [server.authorization_endpoint, server.token_endpoint, server.jwks_uri]) {
     if (typeof endpoint !== 'string' || new URL(identityEndpointSchema.parse(endpoint)).origin !== origin) throw new IdentityAuthenticationError();
   }
+  if (server.revocation_endpoint && new URL(identityEndpointSchema.parse(server.revocation_endpoint)).origin !== origin) throw new IdentityAuthenticationError();
   if (!server.code_challenge_methods_supported?.includes('S256')) throw new IdentityAuthenticationError();
   const client: oauth.Client = { client_id: options.clientId, token_endpoint_auth_method: 'private_key_jwt' };
   const auth = oauth.PrivateKeyJwt(options.privateKey);
   return {
+    /** Caller serializes refreshes and atomically replaces its server-side token record. */
+    async refresh(refreshToken: string, expectedIdentity: { issuer: string; subject: string }) {
+      try {
+        if (!refreshToken || expectedIdentity.issuer !== issuer || !expectedIdentity.subject) throw new IdentityAuthenticationError();
+        const response = await oauth.refreshTokenGrantRequest(server, client, auth, refreshToken, http);
+        const tokens = await oauth.processRefreshTokenResponse(server, client, response);
+        const claims = oauth.getValidatedIdTokenClaims(tokens);
+        if (claims) {
+          await oauth.validateApplicationLevelSignature(server, response, http);
+          if (claims.sub !== expectedIdentity.subject) throw new IdentityAuthenticationError();
+        }
+        return { identity: { issuer, subject: expectedIdentity.subject }, tokens };
+      } catch { throw new IdentityAuthenticationError(); }
+    },
+    /** Revoke this client's token only; application logout must also delete its local session. */
+    async revoke(token: string) {
+      try {
+        if (!token || !server.revocation_endpoint) throw new IdentityAuthenticationError();
+        await oauth.processRevocationResponse(await oauth.revocationRequest(server, client, auth, token, http));
+      } catch { throw new IdentityAuthenticationError(); }
+    },
     async begin(browserBinding: string): Promise<string> {
       if (!browserBinding) throw new IdentityAuthenticationError();
       const transaction: LoginTransaction = { state: oauth.generateRandomState(), nonce: oauth.generateRandomNonce(),
