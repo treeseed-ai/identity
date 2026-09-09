@@ -1,12 +1,8 @@
 import * as oauth from 'oauth4webapi';
-import { identityEndpointSchema, resourceTokenRequestSchema } from '@treeseed/sdk/identity';
+import { identityEndpointSchema, resourceTokenRequestSchema, type BrowserLoginTransaction } from '@treeseed/sdk/identity';
 import { createAccessTokenVerifier, IdentityAuthenticationError, type AccessTokenVerifierOptions } from './access-token.js';
 
-export interface LoginTransaction {
-  state: string; nonce: string; verifier: string; expiresAt: number;
-  issuer: string; clientId: string; redirectUri: string;
-  resource: string; scopes: string[];
-}
+export type LoginTransaction = BrowserLoginTransaction;
 /** Server-side only. consume must atomically remove a transaction bound to this browser session. */
 export interface LoginTransactionStore {
   put(browserBinding: string, transaction: LoginTransaction): Promise<void>;
