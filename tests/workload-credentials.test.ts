@@ -6,7 +6,7 @@ import { createWorkloadCredentials } from '../dist/workload-credentials.js';
 const issuer = 'https://identity.example.test/realms/local';
 const resource = 'https://api.example.test';
 const pair = await generateKeyPair('RS256');
-async function fixture(options: { audience?: string; clientId?: string; kind?: 'human' | 'service'; scopes?: string; revoked?: boolean; endpoint?: string; failure?: boolean } = {}) {
+async function fixture(options: { audience?: string; clientId?: string; kind?: 'human' | 'service'; scopes?: string; emptyRequest?: boolean; revoked?: boolean; endpoint?: string; failure?: boolean } = {}) {
   let requests = 0;
   const transport: typeof fetch = async (_url, init) => {
     assert.equal(init?.redirect, 'error');
@@ -15,7 +15,7 @@ async function fixture(options: { audience?: string; clientId?: string; kind?: '
     const body = new URLSearchParams(init?.body as string);
     assert.equal(body.get('grant_type'), 'client_credentials');
     assert.equal(body.get('resource'), resource);
-    assert.equal(body.get('scope'), 'library:read');
+    assert.equal(body.get('scope'), options.emptyRequest ? null : 'library:read');
     assert.ok(body.get('client_assertion'));
     assert.equal(body.has('client_secret'), false);
     if (options.failure) return Response.json({ error: 'invalid_client', error_description: 'sensitive-provider-diagnostic' }, { status: 401 });
@@ -41,6 +41,10 @@ test('unconfigured resource is denied before credential exchange', async () => {
   const { client, requests } = await fixture();
   await assert.rejects(client.credentials({ resource: 'https://another-market.test', scopes: ['library:read'] }));
   assert.equal(requests(), 0);
+});
+test('omits the optional scope parameter for an empty requested scope list', async () => {
+  const { client } = await fixture({ emptyRequest: true });
+  assert.equal((await client.credentials({ resource, scopes: [] })).principal.kind, 'service');
 });
 test('wrong audience, human principal, missing scope and revocation never produce credentials', async () => {
   for (const options of [{ audience: 'https://another-market.test' }, { clientId: 'other-client' }, { kind: 'human' as const }, { scopes: '' }, { revoked: true }]) {
