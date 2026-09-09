@@ -7,3 +7,4 @@ export * from './public-session.js';
 export * from './resource-discovery.js';
 export * from './signing-keys.js';
 export * from './application-session.js';
+export * from './keycloak-clients.js';
