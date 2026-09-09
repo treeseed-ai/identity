@@ -37,13 +37,26 @@ test('never adopts unmanaged existing clients or overwrites drift', async () => 
   await assert.rejects(f.registry.ensure(application), /not managed/); assert.equal(f.requests.length, 1);
   const managed = fixture(); await managed.registry.ensure(application);
   managed.record().directAccessGrantsEnabled = true;
-  await assert.rejects(managed.registry.ensure(application), /drift/);
+  await assert.rejects(managed.registry.ensure(application), /drift in directAccessGrantsEnabled/);
   assert.equal(managed.requests.filter(value => value.method !== 'GET').length, 1);
 });
 test('rejects broadened audiences and scope grants on read-back', async () => {
   const f = fixture(); await f.registry.ensure(application);
   f.record().protocolMappers.push({ name: 'foreign-resource', protocol: 'openid-connect', protocolMapper: 'oidc-audience-mapper', config: {} });
   await assert.rejects(f.registry.ensure(application), /drift/);
+});
+test('declares real Keycloak mapper defaults and ignores only its generated mapper ID', async () => {
+  const f = fixture(); await f.registry.ensure(application);
+  const mapper = f.record().protocolMappers[0];
+  assert.equal(mapper.consentRequired, false);
+  assert.equal(mapper.config['userinfo.token.claim'], 'false');
+  mapper.id = 'keycloak-generated-mapper-id';
+  assert.equal((await f.registry.ensure(application)).action, 'noop');
+  mapper.config['userinfo.token.claim'] = 'true';
+  await assert.rejects(f.registry.ensure(application), /drift in protocolMappers/);
+  mapper.config['userinfo.token.claim'] = 'false'; mapper.consentRequired = true;
+  await assert.rejects(f.registry.ensure(application), /drift in protocolMappers/);
+  assert.equal(f.requests.filter(value => value.method === 'POST').length, 1);
 });
 test('denies invalid redirects, direct secrets, privileged scopes and workload browser flows before transport', async () => {
   for (const input of [
