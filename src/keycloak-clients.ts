@@ -1,14 +1,16 @@
 import { identityEndpointSchema, resourceTokenRequestSchema, type IdentityCredentials } from '@treeseed/sdk/identity';
 
-export interface KeycloakApplication {
+interface ApplicationBase {
   clientId: string;
-  kind: 'browser' | 'workload';
   resource: string;
   scopes: string[];
-  /** Base64 DER X.509 public certificate; Deployment retains the private key. */
-  certificate: string;
   redirectUris: string[];
 }
+export type KeycloakApplication = ApplicationBase & ({
+  kind: 'browser' | 'workload';
+  /** Base64 DER X.509 public certificate; Deployment retains the private key. */
+  certificate: string;
+} | { kind: 'native'; deviceAuthorization: boolean; certificate?: never });
 
 const owner = 'treeseed-deployment';
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) =>
@@ -19,25 +21,36 @@ const mappers = (value: unknown) => Array.isArray(value) ? value.map(({ id: _id,
 
 function desiredClient(input: KeycloakApplication) {
   resourceTokenRequestSchema.parse({ resource: input.resource, scopes: input.scopes });
+  const native = input.kind === 'native';
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/u.test(input.clientId) || input.clientId === 'treeseed-identity-reconciler'
-    || !['browser', 'workload'].includes(input.kind) || !/^[A-Za-z0-9+/]{100,32766}={0,2}$/u.test(input.certificate)
+    || !['browser', 'workload', 'native'].includes(input.kind)
+    || (native ? 'certificate' in input || typeof input.deviceAuthorization !== 'boolean'
+      : !/^[A-Za-z0-9+/]{100,32766}={0,2}$/u.test(input.certificate))
     || input.scopes.some(scope => ['openid', 'roles', 'offline_access'].includes(scope))
     || input.redirectUris.length > 16 || new Set(input.redirectUris).size !== input.redirectUris.length
-    || (input.kind === 'browser' ? !input.redirectUris.length : input.redirectUris.length !== 0)) throw new Error('Invalid managed Identity application');
+    || (input.kind === 'browser' ? !input.redirectUris.length : native ? !input.redirectUris.length && !input.deviceAuthorization : input.redirectUris.length !== 0)) throw new Error('Invalid managed Identity application');
   const redirects = input.redirectUris.map(uri => {
+    if (native) {
+      // Keycloak's RFC8252 loopback rule varies only the port at request time.
+      // Register a literal IP and exact path, never localhost or a wildcard.
+      if (!/^http:\/\/(?:127\.0\.0\.1|\[::1\])\/[A-Za-z0-9/_-]*$/u.test(uri)) throw new Error('Exact native loopback callback required');
+      return uri;
+    }
     const parsed = identityEndpointSchema.parse(uri);
     if (parsed.includes('*')) throw new Error('Exact browser redirect required');
     return parsed;
   });
-  return { clientId: input.clientId, enabled: true, protocol: 'openid-connect', publicClient: false,
-    clientAuthenticatorType: 'client-jwt', serviceAccountsEnabled: input.kind === 'workload',
-    standardFlowEnabled: input.kind === 'browser', implicitFlowEnabled: false, directAccessGrantsEnabled: false,
-    fullScopeAllowed: false, consentRequired: false, redirectUris: sorted(redirects), webOrigins: [],
+  return { clientId: input.clientId, enabled: true, protocol: 'openid-connect', publicClient: native,
+    clientAuthenticatorType: native ? 'client-secret' : 'client-jwt', serviceAccountsEnabled: input.kind === 'workload',
+    standardFlowEnabled: input.kind === 'browser' || native && redirects.length > 0, implicitFlowEnabled: false, directAccessGrantsEnabled: false,
+    fullScopeAllowed: false, consentRequired: native, redirectUris: sorted(redirects), webOrigins: [],
     // Keycloak attaches its service-account identity scope when enabling this
     // flow. Declare it only for workload clients; it is not a role grant.
     defaultClientScopes: input.kind === 'workload' ? ['basic', 'service_account'] : ['basic'], optionalClientScopes: sorted(input.scopes),
-    attributes: { 'treeseed.managed-by': owner, 'jwt.credential.certificate': input.certificate,
-      'token.endpoint.auth.signing.alg': 'RS256', 'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '300' },
+    attributes: { 'treeseed.managed-by': owner,
+      ...(native ? { 'oauth2.device.authorization.grant.enabled': String(input.deviceAuthorization) }
+        : { 'jwt.credential.certificate': input.certificate, 'token.endpoint.auth.signing.alg': 'RS256' }),
+      'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '300' },
     protocolMappers: [{ name: 'treeseed-resource', protocol: 'openid-connect', protocolMapper: 'oidc-audience-mapper', consentRequired: false,
       config: { 'included.custom.audience': input.resource, 'access.token.claim': 'true', 'id.token.claim': 'false', 'userinfo.token.claim': 'false' } }],
   };
