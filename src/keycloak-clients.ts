@@ -33,11 +33,13 @@ function desiredClient(input: KeycloakApplication) {
     clientAuthenticatorType: 'client-jwt', serviceAccountsEnabled: input.kind === 'workload',
     standardFlowEnabled: input.kind === 'browser', implicitFlowEnabled: false, directAccessGrantsEnabled: false,
     fullScopeAllowed: false, consentRequired: false, redirectUris: sorted(redirects), webOrigins: [],
-    defaultClientScopes: ['basic'], optionalClientScopes: sorted(input.scopes),
+    // Keycloak attaches its service-account identity scope when enabling this
+    // flow. Declare it only for workload clients; it is not a role grant.
+    defaultClientScopes: input.kind === 'workload' ? ['basic', 'service_account'] : ['basic'], optionalClientScopes: sorted(input.scopes),
     attributes: { 'treeseed.managed-by': owner, 'jwt.credential.certificate': input.certificate,
       'token.endpoint.auth.signing.alg': 'RS256', 'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '300' },
-    protocolMappers: [{ name: 'treeseed-resource', protocol: 'openid-connect', protocolMapper: 'oidc-audience-mapper',
-      config: { 'included.custom.audience': input.resource, 'access.token.claim': 'true', 'id.token.claim': 'false' } }],
+    protocolMappers: [{ name: 'treeseed-resource', protocol: 'openid-connect', protocolMapper: 'oidc-audience-mapper', consentRequired: false,
+      config: { 'included.custom.audience': input.resource, 'access.token.claim': 'true', 'id.token.claim': 'false', 'userinfo.token.claim': 'false' } }],
   };
 }
 
@@ -82,7 +84,9 @@ export function createKeycloakApplicationRegistry(options: {
     for (const [key, value] of Object.entries(expected)) {
       const observed = key === 'attributes' ? Object.fromEntries(Object.keys(value).map(name => [name, actual.attributes?.[name]]))
         : key === 'protocolMappers' ? mappers(actual[key]) : Array.isArray(value) ? sorted(actual[key]) : actual[key];
-      if (canonical(observed) !== canonical(value)) throw new Error('Identity application drift requires a reconciliation plan');
+      // The field name comes from our own fixed representation, never provider
+      // content. Report the boundary without certificates, tokens or values.
+      if (canonical(observed) !== canonical(value)) throw new Error(`Identity application drift in ${key} requires a reconciliation plan`);
     }
   }
   return { async ensure(input: KeycloakApplication) {
