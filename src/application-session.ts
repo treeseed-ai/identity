@@ -79,7 +79,7 @@ export function createApplicationSession(options: ApplicationSessionOptions) {
     return new Response(null, { status: 303, headers });
   };
   return {
-    async login(request: Request, returnTo = options.afterLogin) {
+    async login(request: Request, returnTo = options.afterLogin, navigationOptions: { promptForLogin?: boolean } = {}) {
       return safe(async () => {
       trustedRequest(request);
       if (request.method !== 'GET') throw new IdentityAuthenticationError();
@@ -87,8 +87,12 @@ export function createApplicationSession(options: ApplicationSessionOptions) {
       const bytes = crypto.getRandomValues(new Uint8Array(32));
       const binding = btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
       const result = browserSessionResponses.begin.parse(await invoke('begin', { browserBinding: binding }));
-      if (new URL(result.authorizationUrl).origin !== new URL(issuer).origin) throw new IdentityAuthenticationError();
-      return redirect(result.authorizationUrl, [cookie(loginCookie, binding, 300),
+      const authorization = new URL(result.authorizationUrl);
+      if (authorization.origin !== new URL(issuer).origin) throw new IdentityAuthenticationError();
+      // Navigation hint only, never proof of stronger authentication or an
+      // authorization/step-up grant. The issuer controls the sign-in interaction.
+      if (navigationOptions.promptForLogin) authorization.searchParams.set('prompt', 'login');
+      return redirect(authorization.href, [cookie(loginCookie, binding, 300),
         cookie(returnCookie, encodeURIComponent(JSON.stringify({ binding, destination })), 300)]);
       });
     },
