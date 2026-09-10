@@ -1,6 +1,7 @@
 import * as oauth from 'oauth4webapi';
 import { identityEndpointSchema, resourceTokenRequestSchema, type BrowserLoginTransaction } from '@treeseed/sdk/identity';
 import { createAccessTokenVerifier, IdentityAuthenticationError, type AccessTokenVerifierOptions } from './access-token.js';
+import { browserEnrollmentProfile, type BrowserEnrollmentProfile } from './browser-enrollment.js';
 
 export type LoginTransaction = BrowserLoginTransaction;
 /** Server-side only. consume must atomically remove a transaction bound to this browser session. */
@@ -15,6 +16,9 @@ export interface BrowserOidcOptions {
   profile: AccessTokenVerifierOptions['profile'];
   verificationKey: AccessTokenVerifierOptions['verificationKey'];
   resolvePrincipal: AccessTokenVerifierOptions['resolvePrincipal'];
+  /** Optional API-owned enrollment, only after a verified interactive callback.
+   * Never called by refresh or ordinary bearer-token verification. */
+  enrollPrincipal?: (profile: BrowserEnrollmentProfile) => Promise<void>;
   store: LoginTransactionStore;
   /** Deployment-authorized transport owns private routing and DNS-rebinding protection. */
   transport: typeof fetch;
@@ -110,6 +114,16 @@ export async function createBrowserOidcClient(options: BrowserOidcOptions) {
         await oauth.validateApplicationLevelSignature(server, response, http);
         const claims = oauth.getValidatedIdTokenClaims(tokens);
         if (!claims) throw new IdentityAuthenticationError();
+        if (options.enrollPrincipal) {
+          // Validate the access-token boundary BEFORE creating any local account.
+          // This temporary principal is not returned or used to authorize work.
+          const inspect = createAccessTokenVerifier({ issuer, audience: selected.resource, profile: options.profile,
+            verificationKey: options.verificationKey, resolvePrincipal: async identity => identity.subject === claims.sub
+              ? { principalId: 'browser-enrollment-validation', kind: 'human', clientId: options.clientId } : null });
+          const inspected = await inspect(tokens.access_token);
+          if (selected.scopes.some(scope => !inspected.scopes.includes(scope))) throw new IdentityAuthenticationError();
+          await options.enrollPrincipal(browserEnrollmentProfile(issuer, claims));
+        }
         const principal = await validate(tokens.access_token, { issuer, subject: claims.sub });
         return { identity: principal.identity, principal, tokens };
       } catch { throw new IdentityAuthenticationError(); }
