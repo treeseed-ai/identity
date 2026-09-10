@@ -8,3 +8,4 @@ export * from './resource-discovery.js';
 export * from './signing-keys.js';
 export * from './application-session.js';
 export * from './keycloak-clients.js';
+export * from './keycloak-account-import.js';
