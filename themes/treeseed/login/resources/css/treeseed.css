@@ -5,7 +5,7 @@ html, body#keycloak-bg { background: var(--ts-color-canvas); color: var(--ts-col
 .pf-v5-c-login__main-header { border-block-start: 0; }
 .pf-v5-c-login__container { display: grid; grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr); width: min(100%, 56rem); max-width: 56rem; margin: auto; padding: var(--ts-space-6); gap: var(--ts-space-6); background: var(--ts-color-surface-overlay); border: 1px solid var(--ts-color-border); border-radius: var(--ts-radius-lg); box-shadow: var(--ts-color-shadow); }
 #kc-header { display: grid; align-content: center; border-inline-end: 1px solid var(--ts-color-border); padding: var(--ts-space-5); margin: 0; }
-#kc-header-wrapper { display: grid; justify-items: center; gap: var(--ts-space-3); text-align: center; color: var(--ts-color-text); white-space: normal; padding: 0; }
+#kc-header-wrapper { display: grid; justify-items: center; gap: var(--ts-space-3); text-align: center; color: var(--ts-color-text) !important; text-transform: none; letter-spacing: normal; white-space: normal; padding: 0; }
 .auth-brand__mark { width: 4.5rem; height: 4.5rem; }
 .auth-brand__name { font-size: 1.5rem; font-weight: 750; }
 .auth-brand__tag { font-size: .9rem; color: var(--ts-color-text-muted); }
