@@ -1,0 +1,33 @@
+/* Keycloak-native controls, styled with published TreeSeed UI design tokens. */
+html, body#keycloak-bg { background: var(--ts-color-canvas); color: var(--ts-color-text); font-family: var(--font-sans); }
+.pf-v5-c-login { min-height: 100dvh; padding: var(--ts-space-5); background: transparent; }
+.pf-v5-c-login__container { display: grid; grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr); width: min(100%, 56rem); max-width: 56rem; margin: auto; padding: var(--ts-space-6); gap: var(--ts-space-6); background: var(--ts-color-surface-overlay); border: 1px solid var(--ts-color-border); border-radius: var(--ts-radius-lg); box-shadow: var(--ts-color-shadow); }
+#kc-header { display: grid; align-content: center; border-inline-end: 1px solid var(--ts-color-border); padding: var(--ts-space-5); margin: 0; }
+#kc-header-wrapper { display: grid; justify-items: center; gap: var(--ts-space-3); text-align: center; color: var(--ts-color-text); white-space: normal; padding: 0; }
+.auth-brand__mark { width: 4.5rem; height: 4.5rem; }
+.auth-brand__name { font-size: 1.5rem; font-weight: 750; }
+.auth-brand__tag { font-size: .9rem; color: var(--ts-color-text-muted); }
+.pf-v5-c-login__main { background: transparent; color: var(--ts-color-text); box-shadow: none; min-width: 0; }
+.pf-v5-c-login__main-header, .pf-v5-c-login__main-body, .pf-v5-c-login__main-footer-band { padding: var(--ts-space-4); background: transparent; }
+.pf-v5-c-login__main-header { padding-block-end: var(--ts-space-5); }
+.pf-v5-c-title { color: var(--ts-color-text); font-family: var(--font-sans); }
+.pf-v5-c-form__label, .pf-v5-c-check__label { color: var(--ts-color-text); }
+.pf-v5-c-form-control { background: var(--ts-control-background); border: 1px solid var(--ts-color-border-strong); border-radius: var(--ts-radius-sm); }
+.pf-v5-c-form-control::before, .pf-v5-c-form-control::after { border: none; }
+.pf-v5-c-form-control input, .pf-v5-c-form-control select, .pf-v5-c-form-control textarea { color: var(--ts-color-text); background: transparent; font: inherit; min-height: 2.8rem; }
+.pf-v5-c-form-control:focus-within { outline: 2px solid var(--ts-color-focus); outline-offset: 2px; }
+.pf-v5-c-button.pf-m-primary { background: var(--ts-color-accent); color: var(--ts-color-accent-text); border-radius: var(--ts-radius-sm); font-weight: 650; min-height: 2.8rem; }
+.pf-v5-c-button.pf-m-primary:hover { background: var(--ts-color-accent-hover); }
+a, .pf-v5-c-button.pf-m-link { color: var(--ts-color-link); }
+a:hover { color: var(--ts-color-link-hover); }
+.pf-v5-c-form-control.pf-m-error { background: var(--ts-color-danger-soft); border: 2px solid var(--ts-color-danger); }
+.kc-feedback-text, .pf-v5-c-helper-text__item-text.pf-m-error { color: var(--ts-color-danger); font-size: 1rem; }
+.pf-v5-c-login__main-footer-band { border-block-start: 1px solid var(--ts-color-border); margin-block-start: var(--ts-space-4); }
+@media (prefers-color-scheme: dark) {
+  :root { --ts-color-canvas: #0c1414; --ts-color-surface-overlay: #1c292b; --ts-color-text: #e3eeeb; --ts-color-text-muted: #a6bcb7; --ts-control-background: #152122; --ts-color-border: #364c4c; --ts-color-border-strong: #58716d; --ts-color-accent: #80b99e; --ts-color-accent-hover: #9cd0b6; --ts-color-accent-text: #0c2119; --ts-color-link: #83c7c1; --ts-color-link-hover: #afe6df; --ts-color-focus: #83c7c1; --ts-color-danger: #ff8e9c; --ts-color-danger-soft: #44262c; }
+}
+@media (max-width: 640px) {
+  .pf-v5-c-login { padding: var(--ts-space-3); }
+  .pf-v5-c-login__container { grid-template-columns: minmax(0, 1fr); padding: var(--ts-space-3); gap: var(--ts-space-3); }
+  #kc-header { border-inline-end: none; border-block-end: 1px solid var(--ts-color-border); padding: var(--ts-space-4); }
+}

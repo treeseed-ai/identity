@@ -9,3 +9,4 @@ export * from './signing-keys.js';
 export * from './application-session.js';
 export * from './keycloak-clients.js';
 export * from './keycloak-account-import.js';
+export type { BrowserEnrollmentProfile } from './browser-enrollment.js';

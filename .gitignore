@@ -5,3 +5,6 @@ dist/
 .treeseed/generated/
 .treeseed/test-reports/
 public/books/
+themes/treeseed/login/resources/css/tokens.css
+themes/treeseed/login/resources/css/auth.css
+themes/treeseed/login/resources/img/treeseed-logo.svg
