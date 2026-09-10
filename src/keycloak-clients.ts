@@ -6,6 +6,8 @@ interface ApplicationBase {
   resource: string;
   scopes: string[];
   redirectUris: string[];
+  /** Minimal display claims for verified browser enrollment, never roles. */
+  profileClaims?: boolean;
 }
 export type KeycloakApplication = ApplicationBase & ({
   kind: 'browser' | 'workload';
@@ -21,6 +23,8 @@ const sorted = (value: unknown) => Array.isArray(value) ? [...value].sort() : []
 const mappers = (value: unknown) => Array.isArray(value) ? value.map(({ id: _id, ...mapper }) => mapper).sort((a,b) => String(a.name).localeCompare(String(b.name))) : [];
 
 function desiredClient(input: KeycloakApplication) {
+  if (input.profileClaims !== undefined && typeof input.profileClaims !== 'boolean'
+    || input.profileClaims && input.kind !== 'browser') throw new Error('Profile claims require a browser application');
   resourceTokenRequestSchema.parse({ resource: input.resource, scopes: input.scopes });
   validateManagedScopes(input.scopes);
   const native = input.kind === 'native';
@@ -54,7 +58,13 @@ function desiredClient(input: KeycloakApplication) {
         : { 'jwt.credential.certificate': input.certificate, 'token.endpoint.auth.signing.alg': 'RS256' }),
       'pkce.code.challenge.method': 'S256', 'access.token.lifespan': '300' },
     protocolMappers: [{ name: 'treeseed-resource', protocol: 'openid-connect', protocolMapper: 'oidc-audience-mapper', consentRequired: false,
-      config: { 'included.custom.audience': input.resource, 'access.token.claim': 'true', 'id.token.claim': 'false', 'userinfo.token.claim': 'false' } }],
+      config: { 'included.custom.audience': input.resource, 'access.token.claim': 'true', 'id.token.claim': 'false', 'userinfo.token.claim': 'false' } },
+      ...(input.profileClaims ? [['email', 'email', 'String'], ['emailVerified', 'email_verified', 'boolean'],
+        ['firstName', 'given_name', 'String'], ['lastName', 'family_name', 'String']].map(([property, claim, type]) => ({
+          name: `treeseed-profile-${claim}`, protocol: 'openid-connect', protocolMapper: 'oidc-usermodel-property-mapper', consentRequired: false,
+          config: { 'user.attribute': property!, 'claim.name': claim!, 'jsonType.label': type!,
+            'id.token.claim': 'true', 'access.token.claim': 'false', 'userinfo.token.claim': 'false' },
+        })) : [])].sort((a, b) => a.name.localeCompare(b.name)),
   };
 }
 
@@ -104,9 +114,24 @@ export function createKeycloakApplicationRegistry(options: {
       if (canonical(observed) !== canonical(value)) throw new Error(`Identity application drift in ${key} requires a reconciliation plan`);
     }
   }
-  return { async ensure(input: KeycloakApplication) {
+  return { async ensure(input: KeycloakApplication, reconciliation?: { expectedCurrent: KeycloakApplication }) {
     const expected = desiredClient(input), existing = await read(input.clientId);
-    if (existing) verify(existing, expected);
+    if (existing) {
+      try { verify(existing, expected); }
+      catch (error) {
+        // Explicit compare-and-reconcile, not an alias or silent drift repair.
+        // The owner supplies the complete expected previous public contract.
+        if (!reconciliation || reconciliation.expectedCurrent.clientId !== input.clientId) throw error;
+        verify(existing, desiredClient(reconciliation.expectedCurrent));
+        if (!/^[A-Za-z0-9-]{1,128}$/u.test(existing.id)) throw new Error('Invalid managed client identity');
+        await ensureManagedScopes(request, input.scopes);
+        await request(`clients/${encodeURIComponent(existing.id)}`, 'PUT', expected);
+        const actual = await read(input.clientId);
+        if (!actual) throw new Error('Identity application read-back is missing');
+        verify(actual, expected);
+        return { action: 'update' as const, clientId: input.clientId, id: actual.id as string };
+      }
+    }
     await ensureManagedScopes(request, input.scopes);
     if (existing) return { action: 'noop' as const, clientId: input.clientId, id: existing.id as string };
     await request('clients', 'POST', expected);

@@ -23,6 +23,7 @@ function fixture() {
         return Response.json(scopes);
       }
       if (request.method === 'POST') { record = { ...request.body, id: 'generated-id' }; return new Response(null, { status: 201 }); }
+      if (request.method === 'PUT') { record = { ...request.body, id: 'generated-id' }; return new Response(null, { status: 204 }); }
       return Response.json(record ? [record] : []);
     },
   });
@@ -37,6 +38,19 @@ test('registers only public client metadata, reads back, and repeats noop', asyn
   assert.equal(f.record().fullScopeAllowed, false); assert.equal(f.record().clientAuthenticatorType, 'client-jwt');
   assert.deepEqual(f.record().defaultClientScopes, ['basic']);
   assert.equal(JSON.stringify(f.requests).includes('synthetic-token'), false);
+});
+test('adds minimal browser ID claims only through exact declared previous contract', async () => {
+  const f = fixture(); await f.registry.ensure(application);
+  const desired = { ...application, profileClaims: true };
+  await assert.rejects(f.registry.ensure(desired), /drift/);
+  assert.equal((await f.registry.ensure(desired, { expectedCurrent: application })).action, 'update');
+  assert.equal((await f.registry.ensure(desired, { expectedCurrent: application })).action, 'noop');
+  const profile = f.record().protocolMappers.filter((item: { name: string }) => item.name.startsWith('treeseed-profile-'));
+  assert.equal(profile.length, 4);
+  for (const item of profile) { assert.equal(item.config['access.token.claim'], 'false'); assert.equal(item.config['id.token.claim'], 'true'); }
+  f.record().directAccessGrantsEnabled = true;
+  await assert.rejects(f.registry.ensure(desired, { expectedCurrent: application }), /drift/);
+  await assert.rejects(f.registry.ensure({ ...application, kind: 'workload', profileClaims: true }), /browser/);
 });
 test('never adopts unmanaged existing clients or overwrites drift', async () => {
   const f = fixture(); f.setRecord({ id: 'existing', clientId: application.clientId, attributes: {} });
