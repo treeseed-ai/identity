@@ -7,6 +7,9 @@ test('theme preserves native Keycloak forms and uses the canonical UI assets', (
   assert.match(template, /treeseed-logo\.svg/);
   assert.match(template, /startSessionPolling/);
   assert.match(template, /checkAuthSession/);
+  const adapter = readFileSync('themes/treeseed/login/resources/css/treeseed.css', 'utf8');
+  assert.match(adapter, /grid-template-areas: "header main"/);
+  assert.match(adapter, /grid-template-areas: "header" "main"/);
   assert.match(template, /<#nested "form">/);
   // The inherited try-another-way form is retained; never add password fields.
   assert.doesNotMatch(template, /<input[^>]*type="password"/);

@@ -1,6 +1,8 @@
 /* Keycloak-native controls, styled with published TreeSeed UI design tokens. */
 html, body#keycloak-bg { background: var(--ts-color-canvas); color: var(--ts-color-text); font-family: var(--font-sans); }
 .pf-v5-c-login { min-height: 100dvh; padding: var(--ts-space-5); background: transparent; }
+.pf-v5-c-login__container { grid-template-areas: "header main"; }
+.pf-v5-c-login__main-header { border-block-start: 0; }
 .pf-v5-c-login__container { display: grid; grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr); width: min(100%, 56rem); max-width: 56rem; margin: auto; padding: var(--ts-space-6); gap: var(--ts-space-6); background: var(--ts-color-surface-overlay); border: 1px solid var(--ts-color-border); border-radius: var(--ts-radius-lg); box-shadow: var(--ts-color-shadow); }
 #kc-header { display: grid; align-content: center; border-inline-end: 1px solid var(--ts-color-border); padding: var(--ts-space-5); margin: 0; }
 #kc-header-wrapper { display: grid; justify-items: center; gap: var(--ts-space-3); text-align: center; color: var(--ts-color-text); white-space: normal; padding: 0; }
@@ -27,6 +29,7 @@ a:hover { color: var(--ts-color-link-hover); }
   :root { --ts-color-canvas: #0c1414; --ts-color-surface-overlay: #1c292b; --ts-color-text: #e3eeeb; --ts-color-text-muted: #a6bcb7; --ts-control-background: #152122; --ts-color-border: #364c4c; --ts-color-border-strong: #58716d; --ts-color-accent: #80b99e; --ts-color-accent-hover: #9cd0b6; --ts-color-accent-text: #0c2119; --ts-color-link: #83c7c1; --ts-color-link-hover: #afe6df; --ts-color-focus: #83c7c1; --ts-color-danger: #ff8e9c; --ts-color-danger-soft: #44262c; }
 }
 @media (max-width: 640px) {
+  .pf-v5-c-login__container { grid-template-areas: "header" "main"; }
   .pf-v5-c-login { padding: var(--ts-space-3); }
   .pf-v5-c-login__container { grid-template-columns: minmax(0, 1fr); padding: var(--ts-space-3); gap: var(--ts-space-3); }
   #kc-header { border-inline-end: none; border-block-end: 1px solid var(--ts-color-border); padding: var(--ts-space-4); }
