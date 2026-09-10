@@ -40,11 +40,7 @@
         </#list>
     </#if>
     <title>${title!}</title>
-    <#if themeResources?? && themeResources.favicons?has_content>
-        <@themeResourceTags.renderFavicons themeResources.favicons url.resourcesPath />
-    <#else>
-        <link rel="icon" href="${url.resourcesPath}/img/treeseed-logo.svg" type="image/svg+xml" />
-    </#if>
+    <link rel="icon" href="${url.resourcesPath}/img/treeseed-logo.svg" type="image/svg+xml" />
     <#if themeResources?? && themeResources.stylesCommon?has_content>
         <@themeResourceTags.renderStyles themeResources.stylesCommon url.resourcesCommonPath />
     <#elseif properties.stylesCommon?has_content>

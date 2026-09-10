@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 test('theme preserves native Keycloak forms and uses the canonical UI assets', () => {
   const template = readFileSync('themes/treeseed/login/template.ftl', 'utf8');
   assert.match(template, /treeseed-logo\.svg/);
+  // Keycloak 26.7 supplies inherited favicon metadata even in child themes.
+  // It must not override TreeSeed's canonical identity.
+  assert.doesNotMatch(template, /renderFavicons|themeResources\.favicons/);
   assert.match(template, /startSessionPolling/);
   assert.match(template, /checkAuthSession/);
   const adapter = readFileSync('themes/treeseed/login/resources/css/treeseed.css', 'utf8');
