@@ -24,7 +24,7 @@ development:
       sourceRoots: [src, themes, scripts/development, package.json, tsconfig.json]
       ignoredPaths: [dist, node_modules]
       operations:
-        watch: { command: node, args: [--watch-path=src, --watch-path=themes, --import, tsx, scripts/development/build-watch.ts], environment: {}, timeoutSeconds: 86400 }
+        watch: { command: node, args: [--watch-path=src, --watch-path=themes/treeseed/login/template.ftl, --watch-path=themes/treeseed/login/theme.properties, --watch-path=themes/treeseed/login/messages, --watch-path=scripts/build-theme.ts, --watch-path=package.json, --import, tsx, scripts/development/build-watch.ts], environment: {}, timeoutSeconds: 86400 }
         build: { command: node, args: [--import, tsx, scripts/development/build-watch.ts], environment: {}, timeoutSeconds: 900 }
         verify: { command: npm, args: [test], environment: {}, timeoutSeconds: 900 }
       ready: { kind: marker, path: dist/.treeseed-build-complete.json, timeoutSeconds: 120 }

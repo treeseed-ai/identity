@@ -2,8 +2,7 @@ node_modules/
 dist/
 .astro/
 .agent-worktrees/
-.treeseed/generated/
-.treeseed/test-reports/
+.treeseed/
 public/books/
 themes/treeseed/login/resources/css/tokens.css
 themes/treeseed/login/resources/css/auth.css
