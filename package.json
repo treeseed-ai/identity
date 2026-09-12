@@ -24,8 +24,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node --experimental-strip-types scripts/build-theme.ts",
-    "test": "tsc -p tsconfig.tests.json && node --experimental-strip-types --test tests/*.test.mjs tests/*.test.ts",
+    "build": "tsc -p tsconfig.json && node --import tsx scripts/build-theme.ts",
+    "test": "tsc -p tsconfig.tests.json && node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "verify": "npm run build && npm test",
     "prepack": "npm run build"
   },
@@ -37,6 +37,7 @@
   "devDependencies": {
     "@treeseed/ui": "0.12.18-rc.20",
     "@types/node": "24.13.3",
+    "tsx": "4.21.0",
     "typescript": "5.9.3"
   },
   "publishConfig": {

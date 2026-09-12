@@ -1,0 +1,48 @@
+schemaVersion: treeseed.package/v1
+id: "@treeseed/identity"
+name: TreeSeed Identity
+kind: node-typescript
+type: node-library
+repository: treeseed-ai/identity
+publishTarget: npm
+capabilities: { save: true, verify: true, publish: true, deploy: false, localOnly: false }
+workflowTemplateVersion: "1"
+githubEnvironments: [production]
+requiredSecrets: [NPM_TOKEN]
+verify: { fast: npm test, local: npm run verify, release: npm run verify }
+artifacts: [{ provider: npm, name: "@treeseed/identity" }]
+releaseGate: { workflow: verify.yml }
+development:
+  schemaVersion: treeseed.development-runtime/v1
+  project: { id: identity, repository: treeseed-ai/identity }
+  defaults: { leaseSeconds: 14400, restoreOnFailure: true }
+  targets:
+    - id: package
+      kind: package-watch
+      platforms: [linux-amd64, linux-arm64, darwin-arm64, darwin-amd64]
+      runtimeRequirements: [node>=22]
+      sourceRoots: [src, themes, scripts/development, package.json, tsconfig.json]
+      ignoredPaths: [dist, node_modules]
+      operations:
+        watch: { command: node, args: [--watch-path=src, --watch-path=themes, --import, tsx, scripts/development/build-watch.ts], environment: {}, timeoutSeconds: 86400 }
+        build: { command: node, args: [--import, tsx, scripts/development/build-watch.ts], environment: {}, timeoutSeconds: 900 }
+        verify: { command: npm, args: [test], environment: {}, timeoutSeconds: 900 }
+      ready: { kind: marker, path: dist/.treeseed-build-complete.json, timeoutSeconds: 120 }
+      outputs: [{ path: dist, mediaType: application/vnd.treeseed.node-package, completionMarker: dist/.treeseed-build-complete.json, digestAlgorithm: sha256 }]
+      endpoints: []
+      dependencies:
+        - { id: sdk, target: package, locality: local, reaction: rebuild }
+        - { id: ui, target: package, locality: local, reaction: rebuild }
+      statePolicy: stateless
+      migrationPolicy: none
+      secretRefs: {}
+      shutdown: { graceSeconds: 10, activeWorkPolicy: block }
+      resources: {}
+      logs: [.treeseed/development/package.log]
+      forbiddenOperations: [publish, production-tag]
+      freeze:
+        kind: npm-package
+        operation: { command: npm, args: [pack, --json], environment: {}, timeoutSeconds: 900 }
+        artifacts: [treeseed-identity-*.tgz]
+        contractOperations: []
+      promotion: { liveAdmissible: false, candidateRequiresVerification: true }
