@@ -1,0 +1,34 @@
+name: Verify
+on:
+  pull_request:
+  push:
+    branches: [staging, main]
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 24, cache: npm }
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run verify
+      - run: npm pack --ignore-scripts --dry-run
+      - name: Seal staging candidate
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
+        run: |
+          mkdir candidate
+          npm pack --ignore-scripts --pack-destination candidate
+          npm sbom --sbom-format cyclonedx > candidate/sbom.cdx.json
+          node scripts/release-custody.mjs seal
+          node scripts/release-custody.mjs verify
+          cd candidate
+          sha256sum *.tgz *.json > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
+        with:
+          name: identity-candidate-${{ github.sha }}
+          path: candidate/
+          retention-days: 30
+          if-no-files-found: error

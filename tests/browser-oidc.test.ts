@@ -1,0 +1,88 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
+import { createBrowserOidcClient, type LoginTransaction, type LoginTransactionStore } from '../dist/browser-oidc.js';
+
+const issuer = 'https://identity.example.test/realms/local';
+const redirectUri = 'https://admin.example.test/auth/callback';
+const pair = await generateKeyPair('RS256');
+const jwk = { ...await exportJWK(pair.publicKey), alg: 'RS256', kid: 'test-key', use: 'sig' };
+const resource = 'https://api.example.test';
+async function fixture({ metadata = {}, claims = {}, accessClaims = {}, audience = resource, enrollPrincipal }:
+  { metadata?: Record<string, unknown>; claims?: Record<string, unknown>; accessClaims?: Record<string, unknown>; audience?: string;
+    enrollPrincipal?: Parameters<typeof createBrowserOidcClient>[0]['enrollPrincipal'] } = {}) {
+  const transactions = new Map<string, LoginTransaction>(); let transaction: LoginTransaction | undefined; let calls = 0; let now = Date.now();
+  const store: LoginTransactionStore = {
+    async put(binding, value) { transaction = value; transactions.set(`${binding}:${value.state}`, value); },
+    async consume(binding, state) { const key = `${binding}:${state}`; const value = transactions.get(key); transactions.delete(key); return value ?? null; },
+  };
+  const transport: typeof fetch = async (url, init) => {
+    assert.ok(init);
+    assert.equal(init.redirect, 'error');
+    if (String(url).includes('.well-known')) return Response.json({ issuer, authorization_endpoint: `${issuer}/auth`, token_endpoint: `${issuer}/token`, jwks_uri: `${issuer}/certs`, code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['private_key_jwt'], ...metadata });
+    if (String(url).endsWith('/certs')) return Response.json({ keys: [jwk] });
+    assert.equal(String(url), `${issuer}/token`); calls++;
+    const parameters = new URLSearchParams(init.body as string); assert.ok(transaction);
+    assert.equal(parameters.get('code_verifier'), transaction.verifier);
+    assert.equal(parameters.get('redirect_uri'), redirectUri);
+    assert.ok(parameters.get('client_assertion'));
+    const id = await new SignJWT({ nonce: transaction.nonce, ...claims }).setProtectedHeader({ alg: 'RS256', kid: 'test-key' }).setIssuer(issuer).setAudience('admin').setSubject('existing-subject').setIssuedAt().setExpirationTime('5m').sign(pair.privateKey);
+    const access = await new SignJWT({ typ: 'Bearer', azp: 'admin', scope: 'treeseed:read', ...accessClaims })
+      .setProtectedHeader({ alg: 'RS256' }).setIssuer(issuer).setAudience(audience).setSubject('existing-subject')
+      .setIssuedAt().setExpirationTime('1m').sign(pair.privateKey);
+    return Response.json({ access_token: access, token_type: 'Bearer', expires_in: 60, id_token: id });
+  };
+  const client = await createBrowserOidcClient({ issuer, clientId: 'admin', redirectUri, privateKey: pair.privateKey, store, transport, now: () => now,
+    resource, scopes: ['treeseed:read'], profile: 'keycloak', verificationKey: pair.publicKey,
+    enrollPrincipal, resolvePrincipal: async identity => ({ principalId: identity.subject, kind: 'human' }) });
+  return { client, callback: () => { assert.ok(transaction); return new URL(`${redirectUri}?code=one-time&state=${transaction.state}&iss=${encodeURIComponent(issuer)}`); }, calls: () => calls, expire: () => { now += 300_001; } };
+}
+test('PKCE confidential browser flow validates signed ID token and consumes callback once', async () => {
+  const f = await fixture(); const url = new URL(await f.client.begin('browser-session'));
+  assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
+  assert.equal(url.searchParams.get('resource'), resource);
+  assert.equal(url.searchParams.get('scope'), 'openid treeseed:read');
+  assert.ok(url.searchParams.get('nonce')); assert.ok(url.searchParams.get('state'));
+  assert.equal(url.searchParams.has('code_verifier'), false);
+  const callback = f.callback();
+  const result = await f.client.finish('browser-session', callback);
+  assert.deepEqual(result.identity, { issuer, subject: 'existing-subject' });
+  await assert.rejects(f.client.finish('browser-session', callback));
+  assert.equal(f.calls(), 1);
+});
+test('browser binding, expiry, duplicate state and redirect mismatch reject before token exchange', async () => {
+  for (const mode of ['binding', 'expiry', 'duplicate', 'redirect']) {
+    const f = await fixture(); await f.client.begin('browser'); const callback = f.callback();
+    if (mode === 'expiry') f.expire();
+    if (mode === 'duplicate') callback.searchParams.append('state', 'extra');
+    if (mode === 'redirect') callback.hostname = 'attacker.example.test';
+    await assert.rejects(f.client.finish(mode === 'binding' ? 'other-browser' : 'browser', callback));
+    assert.equal(f.calls(), 0);
+  }
+});
+test('ID token nonce mismatch fails with redacted error', async () => {
+  const f = await fixture({ claims: { nonce: 'wrong' } }); await f.client.begin('browser');
+  await assert.rejects(f.client.finish('browser', f.callback()), { code: 'identity_authentication_failed' });
+});
+test('a valid ID token cannot authorize a wrong-resource, wrong-client or insufficient-scope access token', async () => {
+  for (const options of [{ audience: 'https://other-market.example.test' }, { accessClaims: { azp: 'other-client' } }, { accessClaims: { scope: '' } }]) {
+    const f = await fixture(options); await f.client.begin('browser');
+    await assert.rejects(f.client.finish('browser', f.callback()), { code: 'identity_authentication_failed' });
+  }
+});
+test('discovery rejects cross-origin credential endpoints, issuer mismatch and missing S256', async () => {
+  for (const metadata of [{ issuer: 'https://other.example.test' }, { token_endpoint: 'https://attacker.example.test/token' }, { code_challenge_methods_supported: ['plain'] }]) await assert.rejects(fixture({ metadata }));
+});
+test('enrollment runs once after verified callback and never before token boundary validation', async () => {
+  let calls = 0;
+  const enrollPrincipal = async () => { calls++; };
+  for (const invalid of [{ claims: { nonce: 'wrong' } }, { audience: 'https://other.example' },
+    { accessClaims: { azp: 'other' } }, { accessClaims: { scope: '' } }]) {
+    const f = await fixture({ ...invalid, enrollPrincipal }); await f.client.begin('browser');
+    await assert.rejects(f.client.finish('browser', f.callback()));
+    assert.equal(calls, 0);
+  }
+  const f = await fixture({ enrollPrincipal }); await f.client.begin('browser'); const callback = f.callback();
+  await f.client.finish('browser', callback); assert.equal(calls, 1);
+  await assert.rejects(f.client.finish('browser', callback)); assert.equal(calls, 1);
+});

@@ -1,36 +1,46 @@
 {
-  "name": "identity",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@treeseed/identity",
+  "version": "0.1.0-rc.23",
+  "description": "Independent TreeSeed identity and session integration adapters.",
+  "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "npm@11.7.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/treeseed-ai/identity.git"
+  },
+  "files": [
+    "dist",
+    "themes",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
-    "setup": "npm install",
-    "setup:ci": "npm ci",
-    "config": "treeseed config",
-    "preflight": "treeseed preflight",
-    "dev": "treeseed dev",
-    "capacity": "treeseed capacity",
-    "check": "astro check",
-    "build:web": "astro build",
-    "build": "npm run build:web",
-    "deploy": "treeseed release",
-    "preview": "treeseed preview",
-    "sync": "treeseed sync",
-    "verify": "npm run check && npm run build"
+    "build": "tsc -p tsconfig.json && node --import tsx scripts/build-theme.ts",
+    "test": "tsc -p tsconfig.tests.json && node --import tsx --test tests/*.test.mjs tests/*.test.ts",
+    "verify": "npm run build && npm test",
+    "prepack": "npm run build"
   },
   "dependencies": {
-    "@treeseed/agent": "0.13.0-rc.41",
-    "@treeseed/cli": "0.13.0-rc.45",
-    "@treeseed/core": "0.12.60-rc.8",
-    "@treeseed/sdk": "0.13.0-rc.67",
-    "yaml": "2.9.0"
+    "@treeseed/sdk": "0.13.0-rc.108",
+    "jose": "6.2.12",
+    "oauth4webapi": "3.8.8"
   },
   "devDependencies": {
-    "@types/node": "24.6.0",
+    "@treeseed/ui": "0.12.18-rc.20",
+    "@types/node": "24.13.3",
+    "tsx": "4.21.0",
     "typescript": "5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
