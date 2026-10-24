@@ -107,6 +107,9 @@
         "start",
         "--import-realm"
       ],
+      "environment": {
+        "JAVA_OPTS_KC_HEAP": "-Xms128m -Xmx512m"
+      },
       "user": "installation-owner",
       "workerSocket": false,
       "volumes": [],
