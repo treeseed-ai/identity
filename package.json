@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "check": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
-    "build": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js build",
+    "build": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js build && bun dist/src/identity.js --metadata",
     "test:unit": "bun test ./tests --test-name-pattern '^unit:'",
     "test:integration": "bun test ./tests --test-name-pattern '^integration:'",
     "test:smoke": "bun test ./tests --test-name-pattern '^smoke:'",
@@ -34,19 +34,18 @@
     "@treeseed-cordis/sdk": "file:vendor/sdk.tgz",
     "typescript": "5.9.3",
     "@types/bun": "1.4.4",
-    "@types/node": "24.10.1",
-    "@types/pg": "8.23.1"
+    "@types/node": "24.10.1"
   },
   "dependencies": {
     "cordis": "4.0.0-rc.12",
     "openid-client": "6.8.8",
-    "pg": "8.23.1"
+    "postgres": "3.4.9"
   },
   "cordisCandidate": {
     "sdk": {
       "repository": "https://github.com/treeseed-ai/sdk.git",
-      "commit": "a3c25a422675fbe810dc5fca6a7b45643fe01f77",
-      "sha256": "2ff7c25a55bf35c3003433353154da0ca1f31ff26847275c89ef7d55ede4f612"
+      "commit": "c03a2b0eab89786439eddea3cff8161e85676b3e",
+      "sha256": "d6d0f2f4379d2d95403a226d20899ad22a78a11ccdbb4106116ef0a925295d1b"
     }
   },
   "cordis": {
@@ -62,5 +61,168 @@
       "deployment.engine",
       "container.database"
     ]
+  },
+  "cordisProviders": [
+    {
+      "id": "postgres-principals",
+      "pluginId": "identity",
+      "capability": "identity.store",
+      "contractVersion": "0.3.0-cordis.1",
+      "target": "api",
+      "provide": [
+        "identity.store"
+      ],
+      "inject": []
+    },
+    {
+      "id": "configured-oidc",
+      "pluginId": "identity",
+      "capability": "identity.oidc",
+      "contractVersion": "0.3.0-cordis.1",
+      "target": "api",
+      "provide": [
+        "identity.oidc"
+      ],
+      "inject": []
+    },
+    {
+      "id": "database-session",
+      "pluginId": "identity",
+      "capability": "identity.sessions",
+      "contractVersion": "0.3.0-cordis.1",
+      "target": "api",
+      "provide": [
+        "identity.sessions"
+      ],
+      "inject": [
+        "identity.store",
+        "identity.oidc"
+      ]
+    }
+  ],
+  "cordisService": {
+    "role": "identity",
+    "service": {
+      "command": [
+        "start",
+        "--import-realm"
+      ],
+      "user": "installation-owner",
+      "workerSocket": false,
+      "volumes": [],
+      "secrets": [
+        {
+          "source": "identity-config",
+          "target": "/opt/keycloak/conf/keycloak.conf"
+        },
+        {
+          "source": "identity-realm",
+          "target": "/opt/keycloak/data/import/cordis-realm.json"
+        }
+      ],
+      "portTarget": null
+    },
+    "slots": {
+      "oidc-client": {
+        "kind": "random"
+      },
+      "bootstrap-password": {
+        "kind": "random"
+      },
+      "bootstrap-subject": {
+        "kind": "uuid"
+      },
+      "identity-config": {
+        "kind": "properties",
+        "value": {
+          "db": "postgres",
+          "db-url": "jdbc:postgresql://database:5432/cordis",
+          "db-username": "cordis",
+          "db-password": {
+            "$secret": "database-password"
+          },
+          "http-enabled": "true",
+          "http-relative-path": "/identity",
+          "hostname": {
+            "$origin": "/identity"
+          },
+          "proxy-headers": "xforwarded",
+          "health-enabled": "true"
+        }
+      },
+      "identity-realm": {
+        "kind": "json",
+        "value": {
+          "realm": "cordis",
+          "enabled": true,
+          "sslRequired": "external",
+          "registrationAllowed": false,
+          "loginWithEmailAllowed": false,
+          "resetPasswordAllowed": false,
+          "clients": [
+            {
+              "clientId": "cordis-admin",
+              "enabled": true,
+              "protocol": "openid-connect",
+              "publicClient": false,
+              "secret": {
+                "$secret": "oidc-client"
+              },
+              "standardFlowEnabled": true,
+              "directAccessGrantsEnabled": false,
+              "redirectUris": [
+                {
+                  "$origin": "/admin/callback"
+                }
+              ],
+              "attributes": {
+                "pkce.code.challenge.method": "S256"
+              }
+            }
+          ],
+          "users": [
+            {
+              "id": {
+                "$secret": "bootstrap-subject"
+              },
+              "username": "admin",
+              "enabled": true,
+              "emailVerified": true,
+              "email": "admin@localhost",
+              "firstName": "Installation",
+              "lastName": "Owner",
+              "requiredActions": [],
+              "credentials": [
+                {
+                  "type": "password",
+                  "value": {
+                    "$secret": "bootstrap-password"
+                  },
+                  "temporary": false
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "bootstrap": {
+        "kind": "json",
+        "value": {
+          "username": "admin",
+          "password": {
+            "$secret": "bootstrap-password"
+          }
+        }
+      }
+    },
+    "readiness": {
+      "kind": "http-json",
+      "path": "/identity/realms/cordis/.well-known/openid-configuration",
+      "expected": {
+        "issuer": {
+          "$origin": "/identity/realms/cordis"
+        }
+      }
+    }
   }
 }

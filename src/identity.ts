@@ -1,4 +1,4 @@
-import {Pool} from 'pg';
+import postgres,{type Sql} from 'postgres';
 import * as oidc from 'openid-client';
 import {Service} from 'cordis';
 import {randomBytes} from 'node:crypto';
@@ -20,10 +20,16 @@ class Declaration {static server(id:string,capability:string,inject:string[]):Pr
 
 export class KeycloakContainerPlugin implements ReadyContainer {
   static readonly declaration=InstalledDeclarations.service('keycloak','container.identity',['deployment.engine','container.database']);
+  static readonly definition=InstalledSchemas.definition.parse({role:'identity',service:{command:['start','--import-realm'],user:'installation-owner',workerSocket:false,volumes:[],secrets:[{source:'identity-config',target:'/opt/keycloak/conf/keycloak.conf'},{source:'identity-realm',target:'/opt/keycloak/data/import/cordis-realm.json'}],portTarget:null},slots:{
+    'oidc-client':{kind:'random'},'bootstrap-password':{kind:'random'},'bootstrap-subject':{kind:'uuid'},
+    'identity-config':{kind:'properties',value:{db:'postgres','db-url':'jdbc:postgresql://database:5432/cordis','db-username':'cordis','db-password':{$secret:'database-password'},'http-enabled':'true','http-relative-path':'/identity',hostname:{$origin:'/identity'},'proxy-headers':'xforwarded','health-enabled':'true'}},
+    'identity-realm':{kind:'json',value:{realm:'cordis',enabled:true,sslRequired:'external',registrationAllowed:false,loginWithEmailAllowed:false,resetPasswordAllowed:false,clients:[{clientId:'cordis-admin',enabled:true,protocol:'openid-connect',publicClient:false,secret:{$secret:'oidc-client'},standardFlowEnabled:true,directAccessGrantsEnabled:false,redirectUris:[{$origin:'/admin/callback'}],attributes:{'pkce.code.challenge.method':'S256'}}],users:[{id:{$secret:'bootstrap-subject'},username:'admin',enabled:true,emailVerified:true,email:'admin@localhost',firstName:'Installation',lastName:'Owner',requiredActions:[],credentials:[{type:'password',value:{$secret:'bootstrap-password'},temporary:false}]}]}},
+    bootstrap:{kind:'json',value:{username:'admin',password:{$secret:'bootstrap-password'}}}
+  },readiness:{kind:'http-json',path:'/identity/realms/cordis/.well-known/openid-configuration',expected:{issuer:{$origin:'/identity/realms/cordis'}}}});
   static readonly provide=this.declaration.provide;static readonly inject=this.declaration.inject;static readonly Config=PlatformSchemas.empty;
   private readonly engine:ContainerEngine;
   constructor(private readonly context:Context){this.engine=InstalledTokens.engine.parse(Reflect.get(context,InstalledTokens.engine.id));}
-  async [Service.init]():Promise<void>{await this.engine.start('identity');if(!await this.ready())throw new Error('Identity readiness failed');this.context.provide(InstalledTokens.identity.id,this);}
+  async [Service.init]():Promise<void>{await this.engine.start('identity',KeycloakContainerPlugin.definition);if(!await this.ready())throw new Error('Identity readiness failed');this.context.provide(InstalledTokens.identity.id,this);}
   ready():Promise<boolean>{return this.engine.ready('identity');}
   identity():Readonly<{installationId:string;composition:string}>{return this.engine.identity();}
 }
@@ -43,9 +49,16 @@ export class IdentityProtocol {
   async login(state:string,nonce:string,verifier:string):Promise<string>{if(!this.configuration)throw new Error('Identity unavailable');return oidc.buildAuthorizationUrl(this.configuration,{redirect_uri:this.settings.origin+'/admin/callback',scope:'openid profile',response_type:'code',state,nonce,code_challenge:await oidc.calculatePKCECodeChallenge(verifier),code_challenge_method:'S256'}).href;}
   async exchange(url:URL,state:string,nonce:string,verifier:string):Promise<string>{if(!this.configuration||url.origin!==this.settings.origin||url.pathname!=='/admin/callback')throw new Error('Identity callback refused');const tokens=await oidc.authorizationCodeGrant(this.configuration,url,{expectedState:state,expectedNonce:nonce,pkceCodeVerifier:verifier,idTokenExpected:true});const claims=tokens.claims();if(!claims||typeof claims.sub!=='string'||claims.iss!==this.settings.issuer)throw new Error('Identity claims refused');return claims.sub;}
 }
+class DatabaseConnection {
+ private readonly sql:Sql;
+ constructor(connectionString:string){this.sql=postgres(connectionString,{max:4,connect_timeout:5,connection:{statement_timeout:5000},onnotice:DatabaseConnection.ignore});}
+ private static ignore():void {}
+ async query<T extends Record<string,unknown>=Record<string,unknown>>(statement:string,parameters:string[]=[]):Promise<{rows:T[]}>{const rows=await this.sql.unsafe<T[]>(statement,parameters);return {rows};}
+ async end():Promise<void>{await this.sql.end({timeout:5});}
+}
 class IdentityStore {
-  private readonly pool:Pool;
-  constructor(private readonly settings:ServerConfiguration){this.pool=new Pool({connectionString:settings.databaseUrl,max:4,connectionTimeoutMillis:5000,statement_timeout:5000});}
+  private readonly pool:DatabaseConnection;
+  constructor(private readonly settings:ServerConfiguration){this.pool=new DatabaseConnection(settings.databaseUrl);}
   async initialize():Promise<void>{await this.pool.query('CREATE TABLE IF NOT EXISTS cordis_principals (id text PRIMARY KEY, issuer text NOT NULL, subject text NOT NULL, UNIQUE(issuer,subject)); CREATE TABLE IF NOT EXISTS cordis_sessions (id text PRIMARY KEY, principal text NOT NULL REFERENCES cordis_principals(id), expires timestamptz NOT NULL); CREATE TABLE IF NOT EXISTS cordis_pending (id text PRIMARY KEY, nonce text NOT NULL, verifier text NOT NULL, expires timestamptz NOT NULL)');}
   async close():Promise<void>{await this.pool.end();}
   async pending(state:string,nonce:string,verifier:string):Promise<void>{await this.pool.query('DELETE FROM cordis_pending WHERE expires < now()');await this.pool.query('INSERT INTO cordis_pending VALUES($1,$2,$3,now()+interval \'5 minutes\')',[CanonicalJson.digest(state),nonce,verifier]);}
@@ -83,6 +96,7 @@ export class IdentityComposition {
 }
 export class IdentityBuild {
   static metadata():ProviderDeclaration{return KeycloakContainerPlugin.declaration;}
-  static run():void{if(!import.meta.main)return;if(process.argv[2]==='--metadata'){const metadata=JSON.parse(readFileSync('package.json','utf8')) as Record<string,unknown>;metadata.cordis=this.metadata();writeFileSync('package.json',JSON.stringify(metadata,null,2)+'\n');}else if(process.argv[2]==='--describe')process.stdout.write(JSON.stringify(this.metadata())+'\n');else {process.stderr.write('Unsupported identity program invocation.\n');process.exitCode=2;}}
+  static providers():ProviderDeclaration[]{return [StorePlugin.declaration,OidcPlugin.declaration,SessionPlugin.declaration];}
+  static run():void{if(!import.meta.main)return;if(process.argv[2]==='--metadata'){const metadata=JSON.parse(readFileSync('package.json','utf8')) as Record<string,unknown>;metadata.cordis=this.metadata();metadata.cordisService=KeycloakContainerPlugin.definition;metadata.cordisProviders=this.providers();writeFileSync('package.json',JSON.stringify(metadata,null,2)+'\n');}else if(process.argv[2]==='--describe')process.stdout.write(JSON.stringify(this.metadata())+'\n');else {process.stderr.write('Unsupported identity program invocation.\n');process.exitCode=2;}}
 }
 IdentityBuild.run();
