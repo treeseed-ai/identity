@@ -1,0 +1,66 @@
+{
+  "name": "@treeseed-cordis/identity",
+  "version": "0.0.0-cordis.1",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/identity.d.ts",
+      "default": "./dist/src/identity.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
+    "build": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js build",
+    "test:unit": "bun test ./tests --test-name-pattern '^unit:'",
+    "test:integration": "bun test ./tests --test-name-pattern '^integration:'",
+    "test:smoke": "bun test ./tests --test-name-pattern '^smoke:'",
+    "verify": "bun run check && bun run build && bun run test:unit && bun run test:integration && bun run test:smoke"
+  },
+  "peerDependencies": {
+    "@treeseed-cordis/sdk": "0.0.0-cordis.4"
+  },
+  "devDependencies": {
+    "@treeseed-cordis/sdk": "file:vendor/sdk.tgz",
+    "typescript": "5.9.3",
+    "@types/bun": "1.4.4",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.23.1"
+  },
+  "dependencies": {
+    "cordis": "4.0.0-rc.12",
+    "openid-client": "6.8.8",
+    "pg": "8.23.1"
+  },
+  "cordisCandidate": {
+    "sdk": {
+      "repository": "https://github.com/treeseed-ai/sdk.git",
+      "commit": "a3c25a422675fbe810dc5fca6a7b45643fe01f77",
+      "sha256": "2ff7c25a55bf35c3003433353154da0ca1f31ff26847275c89ef7d55ede4f612"
+    }
+  },
+  "cordis": {
+    "id": "keycloak",
+    "pluginId": "keycloak",
+    "capability": "container.identity",
+    "contractVersion": "0.3.0-cordis.1",
+    "target": "deployment",
+    "provide": [
+      "container.identity"
+    ],
+    "inject": [
+      "deployment.engine",
+      "container.database"
+    ]
+  }
+}
