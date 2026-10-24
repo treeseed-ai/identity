@@ -11,11 +11,17 @@ export interface IdentitySessions {
   callback(url:URL,cookie:string):Promise<string>;
   principal(cookie:string):Promise<TrustedPrincipal|null>;
   logout(cookie:string):Promise<void>;
+  ready():Promise<boolean>;
 }
+export interface IdentityPersistence {
+ ready():Promise<boolean>;pending(state:string,nonce:string,verifier:string):Promise<void>;consume(state:string):Promise<{nonce:string;verifier:string}>;session(subject:string):Promise<string>;principal(cookie:string):Promise<TrustedPrincipal|null>;logout(cookie:string):Promise<void>;
+}
+export interface IdentityProtocolAdapter {ready():Promise<boolean>;login(state:string,nonce:string,verifier:string):Promise<string>;exchange(url:URL,state:string,nonce:string,verifier:string):Promise<string>;}
 class Adapter<T extends object> {constructor(private readonly methods:string[]){}parse(value:unknown):T {if(!value||typeof value!=='object')throw new Error('Identity adapter unavailable');for(const method of this.methods)if(typeof Reflect.get(value,method)!=='function')throw new Error('Identity adapter unavailable');return value as T;}}
-export const IdentitySessionsToken=new CapabilityToken<IdentitySessions>('identity.sessions',ProviderSchemas.version,new Adapter(['login','callback','principal','logout']));
-const StoreToken=new CapabilityToken<IdentityStore>('identity.store',ProviderSchemas.version,new Adapter(['pending','consume','session','principal','logout']));
-const ProtocolToken=new CapabilityToken<IdentityProtocol>('identity.oidc',ProviderSchemas.version,new Adapter(['login','exchange']));
+export const IdentitySessionsToken=new CapabilityToken<IdentitySessions>('identity.sessions',ProviderSchemas.version,new Adapter(['login','callback','principal','logout','ready']));
+export const IdentityPersistenceToken=new CapabilityToken<IdentityPersistence>('identity.store',ProviderSchemas.version,new Adapter(['pending','consume','session','principal','logout','ready']));
+export const IdentityProtocolToken=new CapabilityToken<IdentityProtocolAdapter>('identity.oidc',ProviderSchemas.version,new Adapter(['login','exchange','ready']));
+const StoreToken=IdentityPersistenceToken,ProtocolToken=IdentityProtocolToken;
 class Declaration {static server(id:string,capability:string,inject:string[]):ProviderDeclaration{return ProviderSchemas.declaration.parse({id,pluginId:'identity',capability,contractVersion:ProviderSchemas.version,target:'api',provide:[capability],inject});}}
 
 export class KeycloakContainerPlugin implements ReadyContainer {
@@ -46,6 +52,7 @@ export class IdentityProtocol {
   }
   async initialize():Promise<void>{this.configuration=await oidc.discovery(new URL(this.settings.issuer),this.settings.clientId,{client_secret:this.settings.clientSecret,token_endpoint_auth_method:'client_secret_post'},undefined,{[oidc.customFetch]:this.fetch.bind(this)});}
   private async fetch(input:Parameters<oidc.CustomFetch>[0],options:Parameters<oidc.CustomFetch>[1]):Promise<Response>{const requested=new URL(String(input));if(requested.origin!==this.settings.origin||!requested.pathname.startsWith('/identity/realms/cordis/'))throw new Error('Identity endpoint refused');const target=new URL(requested.pathname+requested.search,this.settings.identityInternalOrigin);return fetch(target,{...options,body:options.body instanceof Uint8Array?new Uint8Array(options.body):options.body,redirect:'error',signal:AbortSignal.timeout(10000)});}
+  async ready():Promise<boolean>{try{const response=await fetch(new URL('/identity/realms/cordis/.well-known/openid-configuration',this.settings.identityInternalOrigin),{redirect:'error',signal:AbortSignal.timeout(3000)});if(!response.ok)return false;const document=await response.json() as {issuer?:unknown};return document.issuer===this.settings.issuer;}catch{return false;}}
   async login(state:string,nonce:string,verifier:string):Promise<string>{if(!this.configuration)throw new Error('Identity unavailable');return oidc.buildAuthorizationUrl(this.configuration,{redirect_uri:this.settings.origin+'/admin/callback',scope:'openid profile',response_type:'code',state,nonce,code_challenge:await oidc.calculatePKCECodeChallenge(verifier),code_challenge_method:'S256'}).href;}
   async exchange(url:URL,state:string,nonce:string,verifier:string):Promise<string>{if(!this.configuration||url.origin!==this.settings.origin||url.pathname!=='/admin/callback')throw new Error('Identity callback refused');const tokens=await oidc.authorizationCodeGrant(this.configuration,url,{expectedState:state,expectedNonce:nonce,pkceCodeVerifier:verifier,idTokenExpected:true});const claims=tokens.claims();if(!claims||typeof claims.sub!=='string'||claims.iss!==this.settings.issuer)throw new Error('Identity claims refused');return claims.sub;}
 }
@@ -60,6 +67,7 @@ class IdentityStore {
   private readonly pool:DatabaseConnection;
   constructor(private readonly settings:ServerConfiguration){this.pool=new DatabaseConnection(settings.databaseUrl);}
   async initialize():Promise<void>{await this.pool.query('CREATE TABLE IF NOT EXISTS cordis_principals (id text PRIMARY KEY, issuer text NOT NULL, subject text NOT NULL, UNIQUE(issuer,subject)); CREATE TABLE IF NOT EXISTS cordis_sessions (id text PRIMARY KEY, principal text NOT NULL REFERENCES cordis_principals(id), expires timestamptz NOT NULL); CREATE TABLE IF NOT EXISTS cordis_pending (id text PRIMARY KEY, nonce text NOT NULL, verifier text NOT NULL, expires timestamptz NOT NULL)');}
+  async ready():Promise<boolean>{try{const result=await this.pool.query('SELECT 1 AS ready');return result.rows[0]?.ready===1;}catch{return false;}}
   async close():Promise<void>{await this.pool.end();}
   async pending(state:string,nonce:string,verifier:string):Promise<void>{await this.pool.query('DELETE FROM cordis_pending WHERE expires < now()');await this.pool.query('INSERT INTO cordis_pending VALUES($1,$2,$3,now()+interval \'5 minutes\')',[CanonicalJson.digest(state),nonce,verifier]);}
   async consume(state:string):Promise<{nonce:string;verifier:string}>{const result=await this.pool.query<{nonce:string;verifier:string}>('DELETE FROM cordis_pending WHERE id=$1 AND expires>now() RETURNING nonce,verifier',[CanonicalJson.digest(state)]);if(result.rows.length!==1)throw new Error('Identity state expired');return result.rows[0]!;}
@@ -68,7 +76,8 @@ class IdentityStore {
   async logout(cookie:string):Promise<void>{if(/^[A-Za-z0-9_-]{43}$/.test(cookie))await this.pool.query('DELETE FROM cordis_sessions WHERE id=$1',[CanonicalJson.digest(cookie)]);}
 }
 class SessionService implements IdentitySessions {
-  constructor(private readonly store:IdentityStore,private readonly protocol:IdentityProtocol){}
+  constructor(private readonly store:IdentityPersistence,private readonly protocol:IdentityProtocolAdapter){}
+  async ready():Promise<boolean>{return await this.store.ready()&&await this.protocol.ready();}
   async login():Promise<{location:string;state:string}>{const state=randomBytes(32).toString('base64url'),nonce=randomBytes(32).toString('base64url'),verifier=randomBytes(32).toString('base64url');await this.store.pending(state,nonce,verifier);return {state,location:await this.protocol.login(state,nonce,verifier)};}
   async callback(url:URL,cookie:string):Promise<string>{const state=url.searchParams.get('state');if(!state||!cookie||state!==cookie||!/^[A-Za-z0-9_-]{43}$/.test(state))throw new Error('Identity state refused');const pending=await this.store.consume(state);const subject=await this.protocol.exchange(url,state,pending.nonce,pending.verifier);return this.store.session(subject);}
   principal(cookie:string):Promise<TrustedPrincipal|null>{return this.store.principal(cookie);}
