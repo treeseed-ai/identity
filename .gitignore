@@ -1,9 +1,42 @@
+# Project specific
+# Independent project repositories; never track their source or Git metadata here.
+/packages/
+/examples/
+/context/
+.dsh-*
+.codegraph/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node.js
 node_modules/
 dist/
-.astro/
-.agent-worktrees/
-.treeseed/
-public/books/
-themes/treeseed/login/resources/css/tokens.css
-themes/treeseed/login/resources/css/auth.css
-themes/treeseed/login/resources/img/treeseed-logo.svg
+*.tsbuildinfo
+.gyp-cache/
+.npm-cache/
+.pnpm-store/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation 
+/docs/.astro/
