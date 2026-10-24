@@ -18,3 +18,5 @@ Build generates both cordisService (the container/private-slot/readiness declara
 IdentityPersistence and IdentityProtocolAdapter are public structural contracts with exported capability tokens; consumers do not depend on private fields of concrete store/protocol classes. Native constructor injection supplies the default implementation.
 
 The fixed private backchannel overwrites forwarded protocol/host/port from the accepted HTTPS origin, matching the edge-termination profile. Public issuer/audience/state/nonce validation stays enabled; no TLS validation flag is disabled. The identity service is reachable only on the owned Docker network. See [Keycloak proxy guidance](https://www.keycloak.org/server/reverseproxy).
+
+The first installed Keycloak provider bounds its JVM heap to 128–512 MiB through its owner-declared `JAVA_OPTS_KC_HEAP`. This local acceptance profile does not infer a heap from all host memory. Broader capacity profiles remain a later sizing decision. See [Keycloak container memory guidance](https://www.keycloak.org/server/containers#_specifying_different_memory_settings).
