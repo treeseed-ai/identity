@@ -56,3 +56,14 @@ The package declares the previously qualified native Keycloak manifest
 `88943b6ad06d6293a239f0dfca5acec64218c9b3ab327bf9c936acf408a6ae3b` as prepared OCI bytes,
 with selected-index SHA-256 `2c57cdc49e3d4b2a5aedea1fab23b57171c29eff4ef1e17f4d59247f683effe8`.
 Planning verifies those bytes. Absence does not authorize a pull or invented download URL.
+
+### Selected internal OIDC endpoint
+
+The protocol adapter accepts the HTTP root of the selected typed identity service, rather than
+requiring a container named `identity` on port 8080. The internal hostname must be a valid SDK
+service ID, with a valid TCP port (including HTTP's default port). Userinfo, query, fragment,
+foreign/public DNS names, non-root paths and non-HTTP internal routes are refused. Deployment's
+verified projection is responsible for binding that alias/port to the selected service.
+The public issuer remains the configured loopback HTTPS origin plus `/identity/realms/cordis`;
+userinfo/query/fragment are refused there too. This does not change Keycloak ownership,
+forwarded-origin binding, PKCE, callback, principal, session or credential handling.

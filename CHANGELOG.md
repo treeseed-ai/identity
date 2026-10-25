@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Honor the selected typed internal identity endpoint without fixed container names or ports (#46).
+
 ### Changed
 - Qualify Identity providers against exact SDK .12 contracts (#46).
 
