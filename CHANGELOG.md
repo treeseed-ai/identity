@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Qualify Identity providers against exact SDK .12 contracts (#46).
+
 ### Added
 
 - Declare named Keycloak service and typed OIDC readiness providers (#46).

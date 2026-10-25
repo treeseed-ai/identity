@@ -1,5 +1,12 @@
 # Cordis Identity
 
+Task 3C's current Identity candidate consumes SDK .12 from
+`4a0b12ca45478f58d92a02de4a7c144ed94c7417`, archive SHA-256
+`9652a1e1f830eb85c41b2d9ea207782ffdf291db2ef97331e338775dadf62fd4`.
+Requalify the existing native Keycloak discovery/service and OIDC/session contracts against that
+exact archive. The optional accepted-observation metadata does not move issuer, credential or
+session authority out of Identity. Genuine Keycloak installed assembly remains a separate gate.
+
 
 ## Task 3B: Identity plugins and configured OIDC
 
