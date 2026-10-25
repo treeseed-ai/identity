@@ -20,3 +20,9 @@ IdentityPersistence and IdentityProtocolAdapter are public structural contracts 
 The fixed private backchannel overwrites forwarded protocol/host/port from the accepted HTTPS origin, matching the edge-termination profile. Public issuer/audience/state/nonce validation stays enabled; no TLS validation flag is disabled. The identity service is reachable only on the owned Docker network. See [Keycloak proxy guidance](https://www.keycloak.org/server/reverseproxy).
 
 The first installed Keycloak provider bounds its JVM heap to 128–512 MiB through its owner-declared `JAVA_OPTS_KC_HEAP`. This local acceptance profile does not infer a heap from all host memory. Broader capacity profiles remain a later sizing decision. See [Keycloak container memory guidance](https://www.keycloak.org/server/containers#_specifying_different_memory_settings).
+
+## Task 3C contract
+
+Owner issue: https://github.com/treeseed-ai/identity/issues/46. Follow the approved Platform Task 3C service/provider/UI plan through exact public archives. Preserve independent repository ownership, strict TypeScript classes, native Cordis lifecycle, historical formats and all seven SDK operations. Expected-generation/idempotency, resource/credential/TLS retention and explicit unsafe restart/migration gates are mandatory. All issues remain open until release.
+
+Every visual component must be mobile-first from 320 CSS pixels to widescreen monitors; test 320/375/768/1024/1440/1920/2560 widths, long content, keyboard/touch and 200% text resizing. Keep authored controls at least 44×44 CSS pixels, required actions visible, logical/fluid dimensions and no page overflow (labeled local semantic-table overflow is permitted). UI owns components/styles/renderers; consumers retain domain behavior and Identity retains Keycloak authority.
