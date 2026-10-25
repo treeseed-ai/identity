@@ -1,6 +1,6 @@
 {
   "name": "@treeseed-cordis/identity",
-  "version": "0.0.0-cordis.3",
+  "version": "0.0.0-cordis.4",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -238,7 +238,7 @@
     "pluginId": "identity",
     "package": {
       "name": "@treeseed-cordis/identity",
-      "version": "0.0.0-cordis.3"
+      "version": "0.0.0-cordis.4"
     },
     "providers": [
       {

@@ -4,7 +4,7 @@ import * as oidc from 'openid-client';
 import {Service} from 'cordis';
 import {randomBytes} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
-import {PackageDefinition,ProviderV4Schemas,type NativeProviderDeclaration,InstalledSchemas,InstalledDeclarations,InstalledTokens,PlatformSchemas,ProviderSchemas,CapabilityToken,CanonicalJson,type ContainerEngine,type ReadyContainer,type ServerConfiguration,type TrustedPrincipal,type ProviderArtifact,type ProviderDeclaration} from '@treeseed-cordis/sdk';
+import {PackageDefinition,ProviderV4Schemas,type NativeProviderDeclaration,InstalledSchemas,InstalledDeclarations,InstalledTokens,PlatformSchemas,ServiceSchemas,ProviderSchemas,CapabilityToken,CanonicalJson,type ContainerEngine,type ReadyContainer,type ServerConfiguration,type TrustedPrincipal,type ProviderArtifact,type ProviderDeclaration} from '@treeseed-cordis/sdk';
 import {Context,type ProviderRegistration} from '@treeseed-cordis/sdk/runtime';
 
 export interface IdentitySessions {
@@ -49,7 +49,7 @@ export class IdentityProtocol {
   constructor(settings:unknown){this.settings=IdentityProtocol.validateConfiguration(settings);}
   static validateConfiguration(value:unknown):ServerConfiguration {
     const settings=InstalledSchemas.serverConfiguration.parse(value),issuer=new URL(settings.issuer),internal=new URL(settings.identityInternalOrigin);
-    if(issuer.origin!==settings.origin||issuer.pathname!=='/identity/realms/cordis'||internal.protocol!=='http:'||internal.hostname!=='identity'||internal.port!=='8080'||internal.pathname!=='/')throw new Error('Invalid identity route');return settings;
+    if(issuer.origin!==settings.origin||issuer.pathname!=='/identity/realms/cordis'||issuer.username||issuer.password||issuer.search||issuer.hash||internal.protocol!=='http:'||!ServiceSchemas.serviceId.safeParse(internal.hostname).success||internal.username||internal.password||internal.search||internal.hash||internal.pathname!=='/'||Number(internal.port||80)<1||Number(internal.port||80)>65535)throw new Error('Invalid identity route');return settings;
   }
   private proxyHeaders():Record<string,string>{const origin=new URL(this.settings.origin);return {'x-forwarded-proto':'https','x-forwarded-host':origin.host,'x-forwarded-port':origin.port||'443'};}
   async initialize():Promise<void>{this.configuration=await oidc.discovery(new URL(this.settings.issuer),this.settings.clientId,{client_secret:this.settings.clientSecret,token_endpoint_auth_method:'client_secret_post'},undefined,{[oidc.customFetch]:this.fetch.bind(this)});}
@@ -111,7 +111,7 @@ export class IdentityComposition {
 export class IdentityBuild {
   static metadata():ProviderDeclaration{return KeycloakContainerPlugin.declaration;}
   static providers():NativeProviderDeclaration[]{return [StorePlugin.declaration,OidcPlugin.declaration,SessionPlugin.declaration];}
-  static package(){return PackageDefinition.define('@treeseed-cordis/identity','0.0.0-cordis.3','identity',[PackageDefinition.export(KeycloakServicePlugin,'dist/src/services.js','KeycloakServicePlugin'),PackageDefinition.export(KeycloakReadinessPlugin,'dist/src/services.js','KeycloakReadinessPlugin'),PackageDefinition.export(StorePlugin,'dist/src/identity.js','StorePlugin'),PackageDefinition.export(OidcPlugin,'dist/src/identity.js','OidcPlugin'),PackageDefinition.export(SessionPlugin,'dist/src/identity.js','SessionPlugin')],[],[KeycloakServicePlugin.image]);}
+  static package(){return PackageDefinition.define('@treeseed-cordis/identity','0.0.0-cordis.4','identity',[PackageDefinition.export(KeycloakServicePlugin,'dist/src/services.js','KeycloakServicePlugin'),PackageDefinition.export(KeycloakReadinessPlugin,'dist/src/services.js','KeycloakReadinessPlugin'),PackageDefinition.export(StorePlugin,'dist/src/identity.js','StorePlugin'),PackageDefinition.export(OidcPlugin,'dist/src/identity.js','OidcPlugin'),PackageDefinition.export(SessionPlugin,'dist/src/identity.js','SessionPlugin')],[],[KeycloakServicePlugin.image]);}
   static run():void{if(!import.meta.main)return;if(process.argv[2]==='--metadata'){const metadata=JSON.parse(readFileSync('package.json','utf8')) as Record<string,unknown>;metadata.cordis=this.metadata();metadata.cordisService=KeycloakContainerPlugin.definition;metadata.cordisProviders=this.providers();metadata.cordisPackage=this.package();writeFileSync('package.json',JSON.stringify(metadata,null,2)+'\n');}else if(process.argv[2]==='--describe-services')process.stdout.write(JSON.stringify(this.package())+'\n');else if(process.argv[2]==='--describe')process.stdout.write(JSON.stringify(this.metadata())+'\n');else {process.stderr.write('Unsupported identity program invocation.\n');process.exitCode=2;}}
 }
 IdentityBuild.run();
