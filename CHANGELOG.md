@@ -4,4 +4,4 @@
 
 ### Added
 
-- Identity plugins and configured OIDC (#44).
+- Compose configured identity and Keycloak providers (#44).
