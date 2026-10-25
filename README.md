@@ -26,3 +26,26 @@ The first installed Keycloak provider bounds its JVM heap to 128–512 MiB throu
 Owner issue: https://github.com/treeseed-ai/identity/issues/46. Follow the approved Platform Task 3C service/provider/UI plan through exact public archives. Preserve independent repository ownership, strict TypeScript classes, native Cordis lifecycle, historical formats and all seven SDK operations. Expected-generation/idempotency, resource/credential/TLS retention and explicit unsafe restart/migration gates are mandatory. All issues remain open until release.
 
 Every visual component must be mobile-first from 320 CSS pixels to widescreen monitors; test 320/375/768/1024/1440/1920/2560 widths, long content, keyboard/touch and 200% text resizing. Keep authored controls at least 44×44 CSS pixels, required actions visible, logical/fluid dimensions and no page overflow (labeled local semantic-table overflow is permitted). UI owns components/styles/renderers; consumers retain domain behavior and Identity retains Keycloak authority.
+
+## Named Keycloak service and provider contracts
+
+`@treeseed-cordis/identity/services` exports `KeycloakServicePlugin` and
+`KeycloakReadinessPlugin`. The service uses an accepted instance context and Deployment's
+bounded engine, with typed `identity.oidc@1.0.0` provision and `storage.postgres@1.0.0`
+dependency. Endpoints and explicit database credential grants reference dependency ports;
+there are no fixed database/identity DNS names in the new projection. Realm `cordis`, client
+`cordis-admin`, issuer/public `/identity` prefix, PKCE S256 and owner bootstrap semantics stay.
+
+The readiness class performs bounded direct OIDC discovery at its accepted endpoint, validates
+issuer and protocol endpoint identities, honors cancellation/deadline and returns safe evidence
+without following metadata URLs or exposing response/credential errors. It receives no Docker
+or filesystem interface. Actual Keycloak login/session persistence remains an assembled gate.
+
+Identity's persistence/OIDC/session providers are public named Cordis classes with format-4
+metadata derived from their declarations, Config and conservative restart policy. Existing
+method contracts and Keycloak authority stay here. The legacy format-2 container export is
+retained for historical exact releases; new packages/compositions use the versioned metadata.
+The package declares the previously qualified native Keycloak manifest
+`88943b6ad06d6293a239f0dfca5acec64218c9b3ab327bf9c936acf408a6ae3b` as prepared OCI bytes,
+with selected-index SHA-256 `2c57cdc49e3d4b2a5aedea1fab23b57171c29eff4ef1e17f4d59247f683effe8`.
+Planning verifies those bytes. Absence does not authorize a pull or invented download URL.
