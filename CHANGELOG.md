@@ -6,6 +6,7 @@
 - Honor the selected typed internal identity endpoint without fixed container names or ports (#46).
 
 ### Changed
+- Align Identity with exact shared scoped-management contracts (#46).
 - Qualify Identity providers against exact SDK .12 contracts (#46).
 
 ### Added

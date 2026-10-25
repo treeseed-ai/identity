@@ -67,3 +67,12 @@ verified projection is responsible for binding that alias/port to the selected s
 The public issuer remains the configured loopback HTTPS origin plus `/identity/realms/cordis`;
 userinfo/query/fragment are refused there too. This does not change Keycloak ownership,
 forwarded-origin binding, PKCE, callback, principal, session or credential handling.
+
+### Exact shared contract alignment
+
+Adopt SDK `.14` source `597a9abd79b76fb292a80cd86e4ea83042fbec62`, archive SHA-256
+`c92fb068064a6db4823b29c31602b47e01c21200af759a770480a1a0cc4240a2`, through the same
+public package interface. Preserve Keycloak as the sole issuer/session authority, selected
+internal endpoints, PKCE and principal/session custody. This dependency alignment adds no
+registration, restart or deployment authority to Identity. Rebuild the private `.5` package
+metadata with its own version and rerun default public-construction contracts.
