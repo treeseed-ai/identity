@@ -1,0 +1,231 @@
+{
+  "name": "@treeseed-cordis/identity",
+  "version": "0.0.0-cordis.1",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "node": ">=24.19.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/identity.d.ts",
+      "default": "./dist/src/identity.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
+    "build": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js build && bun dist/src/identity.js --metadata",
+    "test:unit": "bun test ./tests --test-name-pattern '^unit:'",
+    "test:integration": "bun test ./tests --test-name-pattern '^integration:'",
+    "test:smoke": "bun test ./tests --test-name-pattern '^smoke:'",
+    "verify": "bun run check && bun run build && bun run test:unit && bun run test:integration && bun run test:smoke"
+  },
+  "peerDependencies": {
+    "@treeseed-cordis/sdk": "0.0.0-cordis.4"
+  },
+  "devDependencies": {
+    "@treeseed-cordis/sdk": "file:vendor/sdk.tgz",
+    "typescript": "5.9.3",
+    "@types/bun": "1.4.4",
+    "@types/node": "24.10.1"
+  },
+  "dependencies": {
+    "cordis": "4.0.0-rc.12",
+    "openid-client": "6.8.8",
+    "postgres": "3.4.9"
+  },
+  "cordisCandidate": {
+    "sdk": {
+      "repository": "https://github.com/treeseed-ai/sdk.git",
+      "commit": "f44ede394a58814b5d6e73146ba9ed7246b4f2ca",
+      "sha256": "16d3d7f699c55795b97972ca538bfeedeafdc6bfc4c32ed01708871ea02fe75c"
+    }
+  },
+  "cordis": {
+    "id": "keycloak",
+    "pluginId": "keycloak",
+    "capability": "container.identity",
+    "contractVersion": "0.3.0-cordis.1",
+    "target": "deployment",
+    "provide": [
+      "container.identity"
+    ],
+    "inject": [
+      "deployment.engine",
+      "container.database"
+    ]
+  },
+  "cordisProviders": [
+    {
+      "id": "postgres-principals",
+      "pluginId": "identity",
+      "capability": "identity.store",
+      "contractVersion": "0.3.0-cordis.1",
+      "target": "api",
+      "provide": [
+        "identity.store"
+      ],
+      "inject": []
+    },
+    {
+      "id": "configured-oidc",
+      "pluginId": "identity",
+      "capability": "identity.oidc",
+      "contractVersion": "0.3.0-cordis.1",
+      "target": "api",
+      "provide": [
+        "identity.oidc"
+      ],
+      "inject": []
+    },
+    {
+      "id": "database-session",
+      "pluginId": "identity",
+      "capability": "identity.sessions",
+      "contractVersion": "0.3.0-cordis.1",
+      "target": "api",
+      "provide": [
+        "identity.sessions"
+      ],
+      "inject": [
+        "identity.store",
+        "identity.oidc"
+      ]
+    }
+  ],
+  "cordisService": {
+    "role": "identity",
+    "service": {
+      "command": [
+        "start",
+        "--import-realm"
+      ],
+      "environment": {
+        "JAVA_OPTS_KC_HEAP": "-Xms128m -Xmx512m"
+      },
+      "user": "installation-owner",
+      "workerSocket": false,
+      "volumes": [],
+      "secrets": [
+        {
+          "source": "identity-config",
+          "target": "/opt/keycloak/conf/keycloak.conf"
+        },
+        {
+          "source": "identity-realm",
+          "target": "/opt/keycloak/data/import/cordis-realm.json"
+        }
+      ],
+      "portTarget": null
+    },
+    "slots": {
+      "oidc-client": {
+        "kind": "random"
+      },
+      "bootstrap-password": {
+        "kind": "random"
+      },
+      "bootstrap-subject": {
+        "kind": "uuid"
+      },
+      "identity-config": {
+        "kind": "properties",
+        "value": {
+          "db": "postgres",
+          "db-url": "jdbc:postgresql://database:5432/cordis",
+          "db-username": "cordis",
+          "db-password": {
+            "$secret": "database-password"
+          },
+          "http-enabled": "true",
+          "http-relative-path": "/identity",
+          "hostname": {
+            "$origin": "/identity"
+          },
+          "proxy-headers": "xforwarded",
+          "health-enabled": "true"
+        }
+      },
+      "identity-realm": {
+        "kind": "json",
+        "value": {
+          "realm": "cordis",
+          "enabled": true,
+          "sslRequired": "external",
+          "registrationAllowed": false,
+          "loginWithEmailAllowed": false,
+          "resetPasswordAllowed": false,
+          "clients": [
+            {
+              "clientId": "cordis-admin",
+              "enabled": true,
+              "protocol": "openid-connect",
+              "publicClient": false,
+              "secret": {
+                "$secret": "oidc-client"
+              },
+              "standardFlowEnabled": true,
+              "directAccessGrantsEnabled": false,
+              "redirectUris": [
+                {
+                  "$origin": "/admin/callback"
+                }
+              ],
+              "attributes": {
+                "pkce.code.challenge.method": "S256"
+              }
+            }
+          ],
+          "users": [
+            {
+              "id": {
+                "$secret": "bootstrap-subject"
+              },
+              "username": "admin",
+              "enabled": true,
+              "emailVerified": true,
+              "email": "admin@localhost",
+              "firstName": "Installation",
+              "lastName": "Owner",
+              "requiredActions": [],
+              "credentials": [
+                {
+                  "type": "password",
+                  "value": {
+                    "$secret": "bootstrap-password"
+                  },
+                  "temporary": false
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "bootstrap": {
+        "kind": "json",
+        "value": {
+          "username": "admin",
+          "password": {
+            "$secret": "bootstrap-password"
+          }
+        }
+      }
+    },
+    "readiness": {
+      "kind": "http-json",
+      "path": "/identity/realms/cordis/.well-known/openid-configuration",
+      "expected": {
+        "issuer": {
+          "$origin": "/identity/realms/cordis"
+        }
+      }
+    }
+  }
+}
