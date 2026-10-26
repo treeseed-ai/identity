@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Align native Identity and OIDC contracts with the exact SDK .16 candidate (#46).
+
 ### Fixed
 - Honor the selected typed internal identity endpoint without fixed container names or ports (#46).
 

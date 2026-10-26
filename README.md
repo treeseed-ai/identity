@@ -76,3 +76,13 @@ public package interface. Preserve Keycloak as the sole issuer/session authority
 internal endpoints, PKCE and principal/session custody. This dependency alignment adds no
 registration, restart or deployment authority to Identity. Rebuild the private `.5` package
 metadata with its own version and rerun default public-construction contracts.
+
+### Coherent Task 3C SDK alignment
+
+The next Identity candidate uses exact SDK `.16`, source
+`4c0ecd2a0fc28545dbf677cc988ce69f0cf2f15d`, archive SHA-256
+`4084aa8dbe9767984fac9fef7f5cea30a0bec93ed416138d32c804e6389fdba5`.
+This aligns its native service/probe and OIDC contracts with UI and the remaining owner assembly.
+Keycloak stays the identity authority; issuer, realm, client/session policy, service projection,
+secret grants and pinned Keycloak image retain their behavior. Consumers still use the public
+Identity package and exact archive references; no identity implementation moves to another owner.
