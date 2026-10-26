@@ -86,3 +86,9 @@ This aligns its native service/probe and OIDC contracts with UI and the remainin
 Keycloak stays the identity authority; issuer, realm, client/session policy, service projection,
 secret grants and pinned Keycloak image retain their behavior. Consumers still use the public
 Identity package and exact archive references; no identity implementation moves to another owner.
+
+Identity `.7` supersedes the rejected `.6` alignment artifact: the consumer assembly detected
+that `.6` still advertised `.5` in its native package declaration. The immutable `.6` archive is
+retained as negative evidence and must not be selected. Identity's built public declaration now
+must match its own package manifest, and metadata generation refuses a different name/version
+before writing any file. This guards developer packaging identity; Keycloak behavior is unchanged.
