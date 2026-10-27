@@ -1,0 +1,20 @@
+{
+  "repository": "identity",
+  "baseline": "e71629ace6f51c3cddb9022fb83040a88b4393a5",
+  "registrationCount": 8,
+  "entries": [
+    {"from":"tests/identity.test.ts","to":"tests/acceptance/identity.test.ts","tier":"acceptance","name":"smoke: built identity program exposes native container declaration","currentName":"acceptance: built identity program exposes native container declaration"},
+    {"from":"tests/identity.test.ts","to":"tests/unit/identity.test.ts","tier":"unit","name":"unit: identity rejects unconfigured authority","currentName":"unit: identity rejects unconfigured authority"},
+    {"from":"tests/identity.test.ts","to":"tests/integration/identity.test.ts","tier":"integration","name":"integration: generated package metadata comes from native class","currentName":"integration: generated package metadata comes from native class"},
+    {"from":"tests/selected-endpoint.test.ts","to":"tests/acceptance/selected-endpoint.test.ts","tier":"acceptance","name":"smoke: public Identity protocol constructs with selected service aliases ports and retained legacy endpoint","currentName":"acceptance: public Identity protocol constructs with selected service aliases ports and retained legacy endpoint"},
+    {"from":"tests/selected-endpoint.test.ts","to":"tests/unit/selected-endpoint.test.ts","tier":"unit","name":"unit: selected OIDC endpoint still refuses unbound public authority and URL credentials or state","currentName":"unit: selected OIDC endpoint still refuses unbound public authority and URL credentials or state"},
+    {"from":"tests/services.test.ts","to":"tests/integration/services.test.ts","tier":"integration","name":"integration: native default Keycloak discovery probe uses bounded real HTTP and rejects foreign redirected oversized or cancelled evidence","currentName":"integration: native default Keycloak discovery probe uses bounded real HTTP and rejects foreign redirected oversized or cancelled evidence"},
+    {"from":"tests/services.test.ts","to":"tests/unit/services.test.ts","tier":"unit","name":"unit: named provider metadata retains same-owner authority and instance-neutral dependency contracts","currentName":"unit: named provider metadata retains same-owner authority and instance-neutral dependency contracts"},
+    {"from":"tests/services.test.ts","to":"tests/acceptance/services.test.ts","tier":"acceptance","name":"smoke: built identity program exposes five named native providers without private values","currentName":"acceptance: built identity program exposes five named native providers without private values"}
+  ],
+  "mapping": {
+    "tests/identity.test.ts": ["tests/acceptance/identity.test.ts", "tests/unit/identity.test.ts", "tests/integration/identity.test.ts"],
+    "tests/selected-endpoint.test.ts": ["tests/acceptance/selected-endpoint.test.ts", "tests/unit/selected-endpoint.test.ts"],
+    "tests/services.test.ts": ["tests/integration/services.test.ts", "tests/unit/services.test.ts", "tests/acceptance/services.test.ts"]
+  }
+}

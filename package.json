@@ -24,12 +24,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
+    "check": "bun run check:test-layout && bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
     "build": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js build && bun dist/src/identity.js --metadata",
-    "test:unit": "bun test ./tests --test-name-pattern '^unit:'",
-    "test:integration": "bun test ./tests --test-name-pattern '^integration:'",
-    "test:smoke": "bun test ./tests --test-name-pattern '^smoke:'",
-    "verify": "bun run check && bun run build && bun run test:unit && bun run test:integration && bun run test:smoke"
+    "test:unit": "bun test ./tests/unit",
+    "test:integration": "bun test ./tests/integration",
+    "test:smoke": "bun run test:acceptance",
+    "verify": "bun run check && bun run build && bun run test:acceptance && bun run test:regression && bun run test:integration && bun run test:unit",
+    "check:test-layout": "bun .agents/skills/release-workflow/scripts/test-layout.ts",
+    "test:regression": "bun test ./tests/regression",
+    "test:acceptance": "bun test ./tests/acceptance"
   },
   "peerDependencies": {
     "@treeseed-cordis/sdk": "0.0.0-cordis.16"
