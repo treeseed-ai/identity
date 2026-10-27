@@ -1,6 +1,6 @@
 {
   "name": "@treeseed-cordis/identity",
-  "version": "0.0.0-cordis.1",
+  "version": "0.0.0-cordis.7",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -12,6 +12,10 @@
     ".": {
       "types": "./dist/src/identity.d.ts",
       "default": "./dist/src/identity.js"
+    },
+    "./services": {
+      "types": "./dist/src/services.d.ts",
+      "default": "./dist/src/services.js"
     }
   },
   "files": [
@@ -28,7 +32,7 @@
     "verify": "bun run check && bun run build && bun run test:unit && bun run test:integration && bun run test:smoke"
   },
   "peerDependencies": {
-    "@treeseed-cordis/sdk": "0.0.0-cordis.4"
+    "@treeseed-cordis/sdk": "0.0.0-cordis.16"
   },
   "devDependencies": {
     "@treeseed-cordis/sdk": "file:vendor/sdk.tgz",
@@ -44,8 +48,8 @@
   "cordisCandidate": {
     "sdk": {
       "repository": "https://github.com/treeseed-ai/sdk.git",
-      "commit": "f44ede394a58814b5d6e73146ba9ed7246b4f2ca",
-      "sha256": "16d3d7f699c55795b97972ca538bfeedeafdc6bfc4c32ed01708871ea02fe75c"
+      "commit": "4c0ecd2a0fc28545dbf677cc988ce69f0cf2f15d",
+      "sha256": "4084aa8dbe9767984fac9fef7f5cea30a0bec93ed416138d32c804e6389fdba5"
     }
   },
   "cordis": {
@@ -67,7 +71,7 @@
       "id": "postgres-principals",
       "pluginId": "identity",
       "capability": "identity.store",
-      "contractVersion": "0.3.0-cordis.1",
+      "contractVersion": "0.4.0-cordis.1",
       "target": "api",
       "provide": [
         "identity.store"
@@ -78,7 +82,7 @@
       "id": "configured-oidc",
       "pluginId": "identity",
       "capability": "identity.oidc",
-      "contractVersion": "0.3.0-cordis.1",
+      "contractVersion": "0.4.0-cordis.1",
       "target": "api",
       "provide": [
         "identity.oidc"
@@ -89,7 +93,7 @@
       "id": "database-session",
       "pluginId": "identity",
       "capability": "identity.sessions",
-      "contractVersion": "0.3.0-cordis.1",
+      "contractVersion": "0.4.0-cordis.1",
       "target": "api",
       "provide": [
         "identity.sessions"
@@ -227,5 +231,480 @@
         }
       }
     }
+  },
+  "cordisPackage": {
+    "formatVersion": 4,
+    "contractVersion": "0.4.0-cordis.1",
+    "pluginId": "identity",
+    "package": {
+      "name": "@treeseed-cordis/identity",
+      "version": "0.0.0-cordis.7"
+    },
+    "providers": [
+      {
+        "declaration": {
+          "id": "identity.keycloak.service",
+          "pluginId": "identity",
+          "capability": "container.service",
+          "contractVersion": "0.4.0-cordis.1",
+          "target": "deployment",
+          "provide": [
+            "container.service"
+          ],
+          "inject": [
+            "deployment.services",
+            "service.context"
+          ]
+        },
+        "entry": "dist/src/services.js",
+        "classExport": "KeycloakServicePlugin",
+        "configurationSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "replacement": {
+          "kind": "restart",
+          "stateVersion": 1,
+          "qualificationDigest": null
+        },
+        "commandIds": [],
+        "container": {
+          "definition": {
+            "imageId": "keycloak",
+            "user": "installation-owner",
+            "command": [
+              "start",
+              "--import-realm"
+            ],
+            "environment": {
+              "JAVA_OPTS_KC_HEAP": "-Xms128m -Xmx512m"
+            },
+            "ports": [
+              {
+                "id": "http",
+                "target": 8080
+              }
+            ],
+            "volumes": [],
+            "secrets": [
+              {
+                "slot": "identity-config",
+                "target": "/opt/keycloak/conf/keycloak.conf"
+              },
+              {
+                "slot": "identity-realm",
+                "target": "/opt/keycloak/data/import/cordis-realm.json"
+              }
+            ],
+            "workerSocket": false
+          },
+          "resources": {
+            "volumes": [],
+            "slots": {
+              "oidc-client": {
+                "kind": "random"
+              },
+              "bootstrap-password": {
+                "kind": "random"
+              },
+              "bootstrap-subject": {
+                "kind": "uuid"
+              },
+              "identity-config": {
+                "kind": "properties",
+                "value": {
+                  "db": "postgres",
+                  "db-url": {
+                    "$template": [
+                      "jdbc:postgresql://",
+                      {
+                        "$endpoint": {
+                          "dependencyPort": "database",
+                          "portId": "postgres",
+                          "scheme": "tcp",
+                          "path": "/",
+                          "part": "authority"
+                        }
+                      },
+                      "/cordis"
+                    ]
+                  },
+                  "db-username": "cordis",
+                  "db-password": {
+                    "$secret": {
+                      "dependencyPort": "database",
+                      "slot": "database-password"
+                    }
+                  },
+                  "http-enabled": "true",
+                  "http-relative-path": "/identity",
+                  "hostname": {
+                    "$template": [
+                      {
+                        "$context": "origin"
+                      },
+                      "/identity"
+                    ]
+                  },
+                  "proxy-headers": "xforwarded",
+                  "health-enabled": "true"
+                }
+              },
+              "identity-realm": {
+                "kind": "json",
+                "value": {
+                  "realm": "cordis",
+                  "enabled": true,
+                  "sslRequired": "external",
+                  "registrationAllowed": false,
+                  "loginWithEmailAllowed": false,
+                  "resetPasswordAllowed": false,
+                  "clients": [
+                    {
+                      "clientId": "cordis-admin",
+                      "enabled": true,
+                      "protocol": "openid-connect",
+                      "publicClient": false,
+                      "secret": {
+                        "$secret": {
+                          "slot": "oidc-client"
+                        }
+                      },
+                      "standardFlowEnabled": true,
+                      "directAccessGrantsEnabled": false,
+                      "redirectUris": [
+                        {
+                          "$template": [
+                            {
+                              "$context": "origin"
+                            },
+                            "/admin/callback"
+                          ]
+                        }
+                      ],
+                      "attributes": {
+                        "pkce.code.challenge.method": "S256"
+                      }
+                    }
+                  ],
+                  "users": [
+                    {
+                      "id": {
+                        "$secret": {
+                          "slot": "bootstrap-subject"
+                        }
+                      },
+                      "username": "admin",
+                      "enabled": true,
+                      "emailVerified": true,
+                      "email": "admin@localhost",
+                      "firstName": "Installation",
+                      "lastName": "Owner",
+                      "requiredActions": [],
+                      "credentials": [
+                        {
+                          "type": "password",
+                          "value": {
+                            "$secret": {
+                              "slot": "bootstrap-password"
+                            }
+                          },
+                          "temporary": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "bootstrap": {
+                "kind": "json",
+                "value": {
+                  "username": "admin",
+                  "password": {
+                    "$secret": {
+                      "slot": "bootstrap-password"
+                    }
+                  }
+                }
+              }
+            },
+            "grants": [
+              {
+                "dependencyPort": "database",
+                "slot": "database-password"
+              }
+            ],
+            "authorities": []
+          },
+          "providedContracts": [
+            {
+              "port": "oidc",
+              "contractId": "identity.oidc",
+              "contractVersion": "1.0.0"
+            }
+          ],
+          "dependencies": [
+            {
+              "port": "database",
+              "contractId": "storage.postgres",
+              "contractVersion": "1.0.0"
+            }
+          ],
+          "observationContract": "identity.oidc",
+          "transitionPolicy": {
+            "kind": "restart-required",
+            "stateVersion": 1
+          }
+        }
+      },
+      {
+        "declaration": {
+          "id": "identity.keycloak.discovery",
+          "pluginId": "identity",
+          "capability": "probe.service",
+          "contractVersion": "0.4.0-cordis.1",
+          "target": "deployment",
+          "provide": [
+            "probe.service"
+          ],
+          "inject": []
+        },
+        "entry": "dist/src/services.js",
+        "classExport": "KeycloakReadinessPlugin",
+        "configurationSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "issuer": {
+              "type": "string",
+              "pattern": "^https:\\/\\/[^@?#\\s]+\\/identity\\/realms\\/cordis$"
+            }
+          },
+          "required": [
+            "issuer"
+          ],
+          "additionalProperties": false
+        },
+        "replacement": {
+          "kind": "restart",
+          "stateVersion": 1,
+          "qualificationDigest": null
+        },
+        "commandIds": [],
+        "probe": {
+          "observationContracts": [
+            "identity.oidc"
+          ],
+          "schemes": [
+            "http"
+          ],
+          "maximumDeadlineMs": 120000
+        }
+      },
+      {
+        "declaration": {
+          "id": "postgres-principals",
+          "pluginId": "identity",
+          "capability": "identity.store",
+          "contractVersion": "0.4.0-cordis.1",
+          "target": "api",
+          "provide": [
+            "identity.store"
+          ],
+          "inject": []
+        },
+        "entry": "dist/src/identity.js",
+        "classExport": "StorePlugin",
+        "configurationSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "installationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "origin": {
+              "type": "string",
+              "pattern": "^https:\\/\\/(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?$"
+            },
+            "issuer": {
+              "type": "string",
+              "format": "uri"
+            },
+            "identityInternalOrigin": {
+              "type": "string",
+              "format": "uri"
+            },
+            "clientId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clientSecret": {
+              "type": "string",
+              "minLength": 1
+            },
+            "databaseUrl": {
+              "type": "string",
+              "minLength": 1
+            },
+            "bootstrapSubject": {
+              "type": "string",
+              "minLength": 1
+            },
+            "workerSocket": {
+              "type": "string",
+              "pattern": "^\\/"
+            },
+            "assetDigest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "installationId",
+            "origin",
+            "issuer",
+            "identityInternalOrigin",
+            "clientId",
+            "clientSecret",
+            "databaseUrl",
+            "bootstrapSubject",
+            "workerSocket",
+            "assetDigest"
+          ],
+          "additionalProperties": false
+        },
+        "replacement": {
+          "kind": "restart",
+          "stateVersion": 1,
+          "qualificationDigest": null
+        },
+        "commandIds": []
+      },
+      {
+        "declaration": {
+          "id": "configured-oidc",
+          "pluginId": "identity",
+          "capability": "identity.oidc",
+          "contractVersion": "0.4.0-cordis.1",
+          "target": "api",
+          "provide": [
+            "identity.oidc"
+          ],
+          "inject": []
+        },
+        "entry": "dist/src/identity.js",
+        "classExport": "OidcPlugin",
+        "configurationSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "installationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "origin": {
+              "type": "string",
+              "pattern": "^https:\\/\\/(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?$"
+            },
+            "issuer": {
+              "type": "string",
+              "format": "uri"
+            },
+            "identityInternalOrigin": {
+              "type": "string",
+              "format": "uri"
+            },
+            "clientId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clientSecret": {
+              "type": "string",
+              "minLength": 1
+            },
+            "databaseUrl": {
+              "type": "string",
+              "minLength": 1
+            },
+            "bootstrapSubject": {
+              "type": "string",
+              "minLength": 1
+            },
+            "workerSocket": {
+              "type": "string",
+              "pattern": "^\\/"
+            },
+            "assetDigest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "installationId",
+            "origin",
+            "issuer",
+            "identityInternalOrigin",
+            "clientId",
+            "clientSecret",
+            "databaseUrl",
+            "bootstrapSubject",
+            "workerSocket",
+            "assetDigest"
+          ],
+          "additionalProperties": false
+        },
+        "replacement": {
+          "kind": "restart",
+          "stateVersion": 1,
+          "qualificationDigest": null
+        },
+        "commandIds": []
+      },
+      {
+        "declaration": {
+          "id": "database-session",
+          "pluginId": "identity",
+          "capability": "identity.sessions",
+          "contractVersion": "0.4.0-cordis.1",
+          "target": "api",
+          "provide": [
+            "identity.sessions"
+          ],
+          "inject": [
+            "identity.store",
+            "identity.oidc"
+          ]
+        },
+        "entry": "dist/src/identity.js",
+        "classExport": "SessionPlugin",
+        "configurationSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "replacement": {
+          "kind": "restart",
+          "stateVersion": 1,
+          "qualificationDigest": null
+        },
+        "commandIds": []
+      }
+    ],
+    "assets": [],
+    "images": [
+      {
+        "id": "keycloak",
+        "reference": "quay.io/keycloak/keycloak@sha256:88943b6ad06d6293a239f0dfca5acec64218c9b3ab327bf9c936acf408a6ae3b",
+        "source": {
+          "kind": "prepared"
+        },
+        "indexSha256": "2c57cdc49e3d4b2a5aedea1fab23b57171c29eff4ef1e17f4d59247f683effe8",
+        "manifestDigest": "88943b6ad06d6293a239f0dfca5acec64218c9b3ab327bf9c936acf408a6ae3b"
+      }
+    ]
   }
 }

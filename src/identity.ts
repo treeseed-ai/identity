@@ -1,9 +1,10 @@
+import {KeycloakServicePlugin,KeycloakReadinessPlugin,IdentityProviderPolicy} from './services.js';
 import postgres,{type Sql} from 'postgres';
 import * as oidc from 'openid-client';
 import {Service} from 'cordis';
 import {randomBytes} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
-import {InstalledSchemas,InstalledDeclarations,InstalledTokens,PlatformSchemas,ProviderSchemas,CapabilityToken,CanonicalJson,type ContainerEngine,type ReadyContainer,type ServerConfiguration,type TrustedPrincipal,type ProviderArtifact,type ProviderDeclaration} from '@treeseed-cordis/sdk';
+import {PackageDefinition,ProviderV4Schemas,type NativeProviderDeclaration,InstalledSchemas,InstalledDeclarations,InstalledTokens,PlatformSchemas,ServiceSchemas,ProviderSchemas,CapabilityToken,CanonicalJson,type ContainerEngine,type ReadyContainer,type ServerConfiguration,type TrustedPrincipal,type ProviderArtifact,type ProviderDeclaration} from '@treeseed-cordis/sdk';
 import {Context,type ProviderRegistration} from '@treeseed-cordis/sdk/runtime';
 
 export interface IdentitySessions {
@@ -18,11 +19,11 @@ export interface IdentityPersistence {
 }
 export interface IdentityProtocolAdapter {ready():Promise<boolean>;login(state:string,nonce:string,verifier:string):Promise<string>;exchange(url:URL,state:string,nonce:string,verifier:string):Promise<string>;}
 class Adapter<T extends object> {constructor(private readonly methods:string[]){}parse(value:unknown):T {if(!value||typeof value!=='object')throw new Error('Identity adapter unavailable');for(const method of this.methods)if(typeof Reflect.get(value,method)!=='function')throw new Error('Identity adapter unavailable');return value as T;}}
-export const IdentitySessionsToken=new CapabilityToken<IdentitySessions>('identity.sessions',ProviderSchemas.version,new Adapter(['login','callback','principal','logout','ready']));
-export const IdentityPersistenceToken=new CapabilityToken<IdentityPersistence>('identity.store',ProviderSchemas.version,new Adapter(['pending','consume','session','principal','logout','ready']));
-export const IdentityProtocolToken=new CapabilityToken<IdentityProtocolAdapter>('identity.oidc',ProviderSchemas.version,new Adapter(['login','exchange','ready']));
+export const IdentitySessionsToken=new CapabilityToken<IdentitySessions>('identity.sessions',ProviderV4Schemas.version,new Adapter(['login','callback','principal','logout','ready']));
+export const IdentityPersistenceToken=new CapabilityToken<IdentityPersistence>('identity.store',ProviderV4Schemas.version,new Adapter(['pending','consume','session','principal','logout','ready']));
+export const IdentityProtocolToken=new CapabilityToken<IdentityProtocolAdapter>('identity.oidc',ProviderV4Schemas.version,new Adapter(['login','exchange','ready']));
 const StoreToken=IdentityPersistenceToken,ProtocolToken=IdentityProtocolToken;
-class Declaration {static server(id:string,capability:string,inject:string[]):ProviderDeclaration{return ProviderSchemas.declaration.parse({id,pluginId:'identity',capability,contractVersion:ProviderSchemas.version,target:'api',provide:[capability],inject});}}
+class Declaration {static server(id:string,capability:string,inject:string[]):NativeProviderDeclaration{return ProviderV4Schemas.declaration.parse({id,pluginId:'identity',capability,contractVersion:ProviderV4Schemas.version,target:'api',provide:[capability],inject});}}
 
 export class KeycloakContainerPlugin implements ReadyContainer {
   static readonly declaration=InstalledDeclarations.service('keycloak','container.identity',['deployment.engine','container.database']);
@@ -48,7 +49,7 @@ export class IdentityProtocol {
   constructor(settings:unknown){this.settings=IdentityProtocol.validateConfiguration(settings);}
   static validateConfiguration(value:unknown):ServerConfiguration {
     const settings=InstalledSchemas.serverConfiguration.parse(value),issuer=new URL(settings.issuer),internal=new URL(settings.identityInternalOrigin);
-    if(issuer.origin!==settings.origin||issuer.pathname!=='/identity/realms/cordis'||internal.protocol!=='http:'||internal.hostname!=='identity'||internal.port!=='8080'||internal.pathname!=='/')throw new Error('Invalid identity route');return settings;
+    if(issuer.origin!==settings.origin||issuer.pathname!=='/identity/realms/cordis'||issuer.username||issuer.password||issuer.search||issuer.hash||internal.protocol!=='http:'||!ServiceSchemas.serviceId.safeParse(internal.hostname).success||internal.username||internal.password||internal.search||internal.hash||internal.pathname!=='/'||Number(internal.port||80)<1||Number(internal.port||80)>65535)throw new Error('Invalid identity route');return settings;
   }
   private proxyHeaders():Record<string,string>{const origin=new URL(this.settings.origin);return {'x-forwarded-proto':'https','x-forwarded-host':origin.host,'x-forwarded-port':origin.port||'443'};}
   async initialize():Promise<void>{this.configuration=await oidc.discovery(new URL(this.settings.issuer),this.settings.clientId,{client_secret:this.settings.clientSecret,token_endpoint_auth_method:'client_secret_post'},undefined,{[oidc.customFetch]:this.fetch.bind(this)});}
@@ -84,19 +85,22 @@ class SessionService implements IdentitySessions {
   principal(cookie:string):Promise<TrustedPrincipal|null>{return this.store.principal(cookie);}
   logout(cookie:string):Promise<void>{return this.store.logout(cookie);}
 }
-class StorePlugin {
+export class StorePlugin {
+  static readonly replacement=IdentityProviderPolicy.replacement;
   static readonly declaration=Declaration.server('postgres-principals',StoreToken.id,[]);static readonly provide=this.declaration.provide;static readonly inject=this.declaration.inject;static readonly Config=InstalledSchemas.serverConfiguration;
   private readonly store:IdentityStore;
   constructor(private readonly context:Context,settings:ServerConfiguration){this.store=new IdentityStore(settings);}
   async [Service.init]():Promise<()=>Promise<void>>{try{await this.store.initialize();this.context.provide(StoreToken.id,this.store);}catch{await this.store.close();throw new Error('Identity store unavailable');}return this.store.close.bind(this.store);}
 }
-class OidcPlugin {
+export class OidcPlugin {
+  static readonly replacement=IdentityProviderPolicy.replacement;
   static readonly declaration=Declaration.server('configured-oidc',ProtocolToken.id,[]);static readonly provide=this.declaration.provide;static readonly inject=this.declaration.inject;static readonly Config=InstalledSchemas.serverConfiguration;
   private readonly protocol:IdentityProtocol;
   constructor(private readonly context:Context,settings:ServerConfiguration){this.protocol=new IdentityProtocol(settings);}
   async [Service.init]():Promise<void>{await this.protocol.initialize();this.context.provide(ProtocolToken.id,this.protocol);}
 }
-class SessionPlugin {
+export class SessionPlugin {
+  static readonly replacement=IdentityProviderPolicy.replacement;
   static readonly declaration=Declaration.server('database-session',IdentitySessionsToken.id,[StoreToken.id,ProtocolToken.id]);static readonly provide=this.declaration.provide;static readonly inject=this.declaration.inject;static readonly Config=PlatformSchemas.empty;
   constructor(context:Context){context.provide(IdentitySessionsToken.id,new SessionService(StoreToken.parse(Reflect.get(context,StoreToken.id)),ProtocolToken.parse(Reflect.get(context,ProtocolToken.id))));}
 }
@@ -106,7 +110,8 @@ export class IdentityComposition {
 }
 export class IdentityBuild {
   static metadata():ProviderDeclaration{return KeycloakContainerPlugin.declaration;}
-  static providers():ProviderDeclaration[]{return [StorePlugin.declaration,OidcPlugin.declaration,SessionPlugin.declaration];}
-  static run():void{if(!import.meta.main)return;if(process.argv[2]==='--metadata'){const metadata=JSON.parse(readFileSync('package.json','utf8')) as Record<string,unknown>;metadata.cordis=this.metadata();metadata.cordisService=KeycloakContainerPlugin.definition;metadata.cordisProviders=this.providers();writeFileSync('package.json',JSON.stringify(metadata,null,2)+'\n');}else if(process.argv[2]==='--describe')process.stdout.write(JSON.stringify(this.metadata())+'\n');else {process.stderr.write('Unsupported identity program invocation.\n');process.exitCode=2;}}
+  static providers():NativeProviderDeclaration[]{return [StorePlugin.declaration,OidcPlugin.declaration,SessionPlugin.declaration];}
+  static package(){return PackageDefinition.define('@treeseed-cordis/identity','0.0.0-cordis.7','identity',[PackageDefinition.export(KeycloakServicePlugin,'dist/src/services.js','KeycloakServicePlugin'),PackageDefinition.export(KeycloakReadinessPlugin,'dist/src/services.js','KeycloakReadinessPlugin'),PackageDefinition.export(StorePlugin,'dist/src/identity.js','StorePlugin'),PackageDefinition.export(OidcPlugin,'dist/src/identity.js','OidcPlugin'),PackageDefinition.export(SessionPlugin,'dist/src/identity.js','SessionPlugin')],[],[KeycloakServicePlugin.image]);}
+  static run():void{if(!import.meta.main)return;if(process.argv[2]==='--metadata'){const metadata=JSON.parse(readFileSync('package.json','utf8')) as Record<string,unknown>;const declared=this.package();if(metadata.name!==declared.package.name||metadata.version!==declared.package.version)throw new Error('IDENTITY_PACKAGE_IDENTITY_DRIFT');metadata.cordis=this.metadata();metadata.cordisService=KeycloakContainerPlugin.definition;metadata.cordisProviders=this.providers();metadata.cordisPackage=this.package();writeFileSync('package.json',JSON.stringify(metadata,null,2)+'\n');}else if(process.argv[2]==='--describe-services')process.stdout.write(JSON.stringify(this.package())+'\n');else if(process.argv[2]==='--describe')process.stdout.write(JSON.stringify(this.metadata())+'\n');else {process.stderr.write('Unsupported identity program invocation.\n');process.exitCode=2;}}
 }
 IdentityBuild.run();

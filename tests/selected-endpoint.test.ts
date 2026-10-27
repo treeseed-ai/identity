@@ -1,0 +1,11 @@
+import { test, expect } from 'bun:test';
+import { spawnSync } from 'node:child_process';
+import { IdentityProtocol } from '../src/identity.js';
+class SelectedEndpointTests {
+    private readonly configuration = { installationId: 'endpoint-fixture', origin: 'https://localhost:58443', issuer: 'https://localhost:58443/identity/realms/cordis', identityInternalOrigin: 'http://issuer-17:9090', clientId: 'cordis-admin', clientSecret: 'IDENTITY_SECRET_CANARY', databaseUrl: 'postgresql://fixture', bootstrapSubject: 'fixture-subject', workerSocket: '/fixture/host.sock', assetDigest: 'a'.repeat(64) };
+    program(): void { const code = "import {IdentityProtocol} from '@treeseed-cordis/identity';class Program{static run(){const settings=JSON.parse(process.argv[1]);for(const endpoint of ['http://issuer-17:9090','http://issuer-17:80','http://identity:8080'])new IdentityProtocol({...settings,identityInternalOrigin:endpoint});process.stdout.write('selected-identity-endpoint-ok\\n');}}Program.run();", result = spawnSync('node', ['--input-type=module', '-e', code, JSON.stringify(this.configuration)], { encoding: 'utf8' }); expect(result.status).toBe(0); expect(result.stderr).toBe(''); expect(result.stdout).toBe('selected-identity-endpoint-ok\n'); }
+    denied(): void { for (const endpoint of ['https://issuer-17:9090', 'http://issuer.example:9090', 'http://127.0.0.1:9090', 'http://user:pass@issuer-17:9090', 'http://issuer-17:9090/path', 'http://issuer-17:9090/?q=CANARY', 'http://issuer-17:9090/#CANARY']) expect(IdentityProtocol.validateConfiguration.bind(IdentityProtocol, { ...this.configuration, identityInternalOrigin: endpoint })).toThrow(); for (const issuer of ['https://elsewhere.invalid/identity/realms/cordis', this.configuration.issuer + '?q=CANARY', this.configuration.issuer + '#CANARY', 'https://user:pass@localhost:58443/identity/realms/cordis']) expect(IdentityProtocol.validateConfiguration.bind(IdentityProtocol, { ...this.configuration, issuer })).toThrow(); }
+}
+const selectedEndpoints = new SelectedEndpointTests();
+test('smoke: public Identity protocol constructs with selected service aliases ports and retained legacy endpoint', selectedEndpoints.program.bind(selectedEndpoints));
+test('unit: selected OIDC endpoint still refuses unbound public authority and URL credentials or state', selectedEndpoints.denied.bind(selectedEndpoints));

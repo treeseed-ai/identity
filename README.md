@@ -1,5 +1,12 @@
 # Cordis Identity
 
+Task 3C's current Identity candidate consumes SDK .12 from
+`4a0b12ca45478f58d92a02de4a7c144ed94c7417`, archive SHA-256
+`9652a1e1f830eb85c41b2d9ea207782ffdf291db2ef97331e338775dadf62fd4`.
+Requalify the existing native Keycloak discovery/service and OIDC/session contracts against that
+exact archive. The optional accepted-observation metadata does not move issuer, credential or
+session authority out of Identity. Genuine Keycloak installed assembly remains a separate gate.
+
 
 ## Task 3B: Identity plugins and configured OIDC
 
@@ -20,3 +27,68 @@ IdentityPersistence and IdentityProtocolAdapter are public structural contracts 
 The fixed private backchannel overwrites forwarded protocol/host/port from the accepted HTTPS origin, matching the edge-termination profile. Public issuer/audience/state/nonce validation stays enabled; no TLS validation flag is disabled. The identity service is reachable only on the owned Docker network. See [Keycloak proxy guidance](https://www.keycloak.org/server/reverseproxy).
 
 The first installed Keycloak provider bounds its JVM heap to 128–512 MiB through its owner-declared `JAVA_OPTS_KC_HEAP`. This local acceptance profile does not infer a heap from all host memory. Broader capacity profiles remain a later sizing decision. See [Keycloak container memory guidance](https://www.keycloak.org/server/containers#_specifying_different_memory_settings).
+
+## Task 3C contract
+
+Owner issue: https://github.com/treeseed-ai/identity/issues/46. Follow the approved Platform Task 3C service/provider/UI plan through exact public archives. Preserve independent repository ownership, strict TypeScript classes, native Cordis lifecycle, historical formats and all seven SDK operations. Expected-generation/idempotency, resource/credential/TLS retention and explicit unsafe restart/migration gates are mandatory. All issues remain open until release.
+
+Every visual component must be mobile-first from 320 CSS pixels to widescreen monitors; test 320/375/768/1024/1440/1920/2560 widths, long content, keyboard/touch and 200% text resizing. Keep authored controls at least 44×44 CSS pixels, required actions visible, logical/fluid dimensions and no page overflow (labeled local semantic-table overflow is permitted). UI owns components/styles/renderers; consumers retain domain behavior and Identity retains Keycloak authority.
+
+## Named Keycloak service and provider contracts
+
+`@treeseed-cordis/identity/services` exports `KeycloakServicePlugin` and
+`KeycloakReadinessPlugin`. The service uses an accepted instance context and Deployment's
+bounded engine, with typed `identity.oidc@1.0.0` provision and `storage.postgres@1.0.0`
+dependency. Endpoints and explicit database credential grants reference dependency ports;
+there are no fixed database/identity DNS names in the new projection. Realm `cordis`, client
+`cordis-admin`, issuer/public `/identity` prefix, PKCE S256 and owner bootstrap semantics stay.
+
+The readiness class performs bounded direct OIDC discovery at its accepted endpoint, validates
+issuer and protocol endpoint identities, honors cancellation/deadline and returns safe evidence
+without following metadata URLs or exposing response/credential errors. It receives no Docker
+or filesystem interface. Actual Keycloak login/session persistence remains an assembled gate.
+
+Identity's persistence/OIDC/session providers are public named Cordis classes with format-4
+metadata derived from their declarations, Config and conservative restart policy. Existing
+method contracts and Keycloak authority stay here. The legacy format-2 container export is
+retained for historical exact releases; new packages/compositions use the versioned metadata.
+The package declares the previously qualified native Keycloak manifest
+`88943b6ad06d6293a239f0dfca5acec64218c9b3ab327bf9c936acf408a6ae3b` as prepared OCI bytes,
+with selected-index SHA-256 `2c57cdc49e3d4b2a5aedea1fab23b57171c29eff4ef1e17f4d59247f683effe8`.
+Planning verifies those bytes. Absence does not authorize a pull or invented download URL.
+
+### Selected internal OIDC endpoint
+
+The protocol adapter accepts the HTTP root of the selected typed identity service, rather than
+requiring a container named `identity` on port 8080. The internal hostname must be a valid SDK
+service ID, with a valid TCP port (including HTTP's default port). Userinfo, query, fragment,
+foreign/public DNS names, non-root paths and non-HTTP internal routes are refused. Deployment's
+verified projection is responsible for binding that alias/port to the selected service.
+The public issuer remains the configured loopback HTTPS origin plus `/identity/realms/cordis`;
+userinfo/query/fragment are refused there too. This does not change Keycloak ownership,
+forwarded-origin binding, PKCE, callback, principal, session or credential handling.
+
+### Exact shared contract alignment
+
+Adopt SDK `.14` source `597a9abd79b76fb292a80cd86e4ea83042fbec62`, archive SHA-256
+`c92fb068064a6db4823b29c31602b47e01c21200af759a770480a1a0cc4240a2`, through the same
+public package interface. Preserve Keycloak as the sole issuer/session authority, selected
+internal endpoints, PKCE and principal/session custody. This dependency alignment adds no
+registration, restart or deployment authority to Identity. Rebuild the private `.5` package
+metadata with its own version and rerun default public-construction contracts.
+
+### Coherent Task 3C SDK alignment
+
+The next Identity candidate uses exact SDK `.16`, source
+`4c0ecd2a0fc28545dbf677cc988ce69f0cf2f15d`, archive SHA-256
+`4084aa8dbe9767984fac9fef7f5cea30a0bec93ed416138d32c804e6389fdba5`.
+This aligns its native service/probe and OIDC contracts with UI and the remaining owner assembly.
+Keycloak stays the identity authority; issuer, realm, client/session policy, service projection,
+secret grants and pinned Keycloak image retain their behavior. Consumers still use the public
+Identity package and exact archive references; no identity implementation moves to another owner.
+
+Identity `.7` supersedes the rejected `.6` alignment artifact: the consumer assembly detected
+that `.6` still advertised `.5` in its native package declaration. The immutable `.6` archive is
+retained as negative evidence and must not be selected. Identity's built public declaration now
+must match its own package manifest, and metadata generation refuses a different name/version
+before writing any file. This guards developer packaging identity; Keycloak behavior is unchanged.
