@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Changed
+
+- Organize permanent tests by tier and enforce the shared development/testing strategy (#53).
+
+### Changed
 - Align Identity with SDK .16 and reject mismatched native package metadata before publication (#46).
 
 ### Fixed
