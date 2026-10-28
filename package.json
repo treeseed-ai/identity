@@ -24,7 +24,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "bun run check:test-layout && bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
+    "check": "bun run check:readability && bun run check:test-layout && bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js check",
     "build": "bun node_modules/@treeseed-cordis/sdk/dist/src/source-policy.js build && bun dist/src/identity.js --metadata",
     "test:unit": "bun test ./tests/unit",
     "test:integration": "bun test ./tests/integration",
@@ -32,7 +32,8 @@
     "verify": "bun run check && bun run build && bun run test:acceptance && bun run test:regression && bun run test:integration && bun run test:unit",
     "check:test-layout": "bun .agents/skills/release-workflow/scripts/test-layout.ts",
     "test:regression": "bun test ./tests/regression",
-    "test:acceptance": "bun test ./tests/acceptance"
+    "test:acceptance": "bun test ./tests/acceptance",
+    "check:readability": "bun .agents/skills/release-workflow/scripts/source-readability.ts"
   },
   "peerDependencies": {
     "@treeseed-cordis/sdk": "0.0.0-cordis.16"
@@ -41,7 +42,8 @@
     "@treeseed-cordis/sdk": "file:vendor/sdk.tgz",
     "typescript": "5.9.3",
     "@types/bun": "1.4.4",
-    "@types/node": "24.10.1"
+    "@types/node": "24.10.1",
+    "prettier": "3.6.2"
   },
   "dependencies": {
     "cordis": "4.0.0-rc.12",
