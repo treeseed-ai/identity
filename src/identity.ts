@@ -111,7 +111,19 @@ export class IdentityComposition {
 export class IdentityBuild {
   static metadata():ProviderDeclaration{return KeycloakContainerPlugin.declaration;}
   static providers():NativeProviderDeclaration[]{return [StorePlugin.declaration,OidcPlugin.declaration,SessionPlugin.declaration];}
-  static package(){return PackageDefinition.define('@treeseed-cordis/identity','0.0.0-cordis.7','identity',[PackageDefinition.export(KeycloakServicePlugin,'dist/src/services.js','KeycloakServicePlugin'),PackageDefinition.export(KeycloakReadinessPlugin,'dist/src/services.js','KeycloakReadinessPlugin'),PackageDefinition.export(StorePlugin,'dist/src/identity.js','StorePlugin'),PackageDefinition.export(OidcPlugin,'dist/src/identity.js','OidcPlugin'),PackageDefinition.export(SessionPlugin,'dist/src/identity.js','SessionPlugin')],[],[KeycloakServicePlugin.image]);}
+  private static readonly packageExports = [
+    PackageDefinition.export(KeycloakServicePlugin, 'dist/src/services.js', 'KeycloakServicePlugin'),
+    PackageDefinition.export(KeycloakReadinessPlugin, 'dist/src/services.js', 'KeycloakReadinessPlugin'),
+    PackageDefinition.export(StorePlugin, 'dist/src/identity.js', 'StorePlugin'),
+    PackageDefinition.export(OidcPlugin, 'dist/src/identity.js', 'OidcPlugin'),
+    PackageDefinition.export(SessionPlugin, 'dist/src/identity.js', 'SessionPlugin'),
+  ];
+  static package() {
+    return PackageDefinition.define(
+      '@treeseed-cordis/identity', '0.0.0-cordis.8', 'identity', this.packageExports,
+      [], [KeycloakServicePlugin.image],
+    );
+  }
   static run():void{if(!import.meta.main)return;if(process.argv[2]==='--metadata'){const metadata=JSON.parse(readFileSync('package.json','utf8')) as Record<string,unknown>;const declared=this.package();if(metadata.name!==declared.package.name||metadata.version!==declared.package.version)throw new Error('IDENTITY_PACKAGE_IDENTITY_DRIFT');metadata.cordis=this.metadata();metadata.cordisService=KeycloakContainerPlugin.definition;metadata.cordisProviders=this.providers();metadata.cordisPackage=this.package();writeFileSync('package.json',JSON.stringify(metadata,null,2)+'\n');}else if(process.argv[2]==='--describe-services')process.stdout.write(JSON.stringify(this.package())+'\n');else if(process.argv[2]==='--describe')process.stdout.write(JSON.stringify(this.metadata())+'\n');else {process.stderr.write('Unsupported identity program invocation.\n');process.exitCode=2;}}
 }
 IdentityBuild.run();
