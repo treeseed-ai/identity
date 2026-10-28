@@ -1,5 +1,16 @@
 # Cordis Identity
 
+## Task 3D contract compatibility
+
+Issue #57 advances this package to SDK `0.0.0-cordis.19` through the exact public archive
+from `90cf4f3cc62e166685280450c727499defd2af5b`, SHA-256
+`93dd549c98aba180306e9b19cc1cbc37494544b2764ed341c531c9af618c6f81`.
+The accepted archive, installed version and peer pin must agree. This qualifies existing
+Keycloak/OIDC provider behavior against the shared seed/capacity contract candidate; it does
+not introduce a new identity authority, implement Agent enrollment or claim Task 3D completion.
+Approval and provider credentials remain governed by their existing owner protocols.
+Historical artifacts remain immutable. All issues remain open until authorized release.
+
 Task 3C's current Identity candidate consumes SDK .12 from
 `4a0b12ca45478f58d92a02de4a7c144ed94c7417`, archive SHA-256
 `9652a1e1f830eb85c41b2d9ea207782ffdf291db2ef97331e338775dadf62fd4`.

@@ -5,6 +5,7 @@
 ### Changed
 - Require readable capability layers and contextual refactoring with a twenty-line method gate (#55).
 
+- Qualify Identity against the exact Task 3D SDK capacity contract candidate (#57).
 - Organize permanent tests by tier and enforce the shared development/testing strategy (#53).
 - Align Identity with SDK .16 and reject mismatched native package metadata before publication (#46).
 
