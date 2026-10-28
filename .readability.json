@@ -1,0 +1,257 @@
+{
+  "formatVersion": 1,
+  "baselineCommit": "fa85e8ec3844129f5029872519a2fe29bc700fba",
+  "violations": [
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestLayout.inspect",
+      "fingerprint": "bfff01a3fe612610a72c2bcc0f00c92fdb5abbe557d2b876614a24990d557a0c"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestLayout.check",
+      "fingerprint": "aec11cb99ea6438078fa6cbf353bbf8c4b5f5803a1e0102c86b725180f20e669"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestLayout.discovery",
+      "fingerprint": "771becf2a0f493fa9ee054d98379140581968b2134e1ccfd778ac1618eb4074b"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestLayout.partitions",
+      "fingerprint": "95cef1faa4182536c0be52904c7525d3ed245bac04f22d969ea73307ef0fa2bd"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestLayout.directory",
+      "fingerprint": "fb2f15a07b290e17c566adedf0e37dd7b4093a59a6085ebbf4f787474f6adb0a"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestRegistrationVisitor.inspect",
+      "fingerprint": "ccbfb614b5e447bf0eb3230ba9a80b6a369bae7ec130ef5e134c087a2d0c7058"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestRegistrationVisitor.visit",
+      "fingerprint": "8740012694378c96522cedfa0f69377ee1f26c18d316baaee9050fcb4d6e752d"
+    },
+    {
+      "file": ".agents/skills/release-workflow/scripts/test-layout.ts",
+      "symbol": "TestRegistrationVisitor.test",
+      "fingerprint": "facc0ab411b33f7d001b6f8e5852eebf4ff02716394b318b20ec046794e30fe1"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "Adapter.parse",
+      "fingerprint": "04da6afdbbffb7db5b860dab1fec2882af63181c7f67f0fe98d29a2656838b24"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "KeycloakContainerPlugin.[Service.init]",
+      "fingerprint": "fab155ec5fb5ad3665dd41c9de6ca03264ef00a3b73b2bfc06c0d27d77503aa3"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityProtocol.static validateConfiguration",
+      "fingerprint": "63e46d537e05cfa02ec5f037e35458e9a68d27f5e006a4672c730dfce93d899e"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityProtocol.proxyHeaders",
+      "fingerprint": "07d712d6a1cae1be31899df3570f3625bebe51e147bc5c286da6952c36f9433f"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityProtocol.fetch",
+      "fingerprint": "5aa5ad116923f9510a470a055123f187b7a715e3d99b94b8ad8817c260b43b0f"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityProtocol.ready",
+      "fingerprint": "cc30335e00055fb7bc1a06966d857fa34c681d754b5a512936ffa22eb0d45c79"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityProtocol.login",
+      "fingerprint": "d2b5d073ceaceca9825b5dd38ae252df4baec0cd84229c615748ba8e23f68288"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityProtocol.exchange",
+      "fingerprint": "6b9d174a7370c8a33308a843e84b3939233ecd78e78c7c2cb0182c54b821c08f"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "DatabaseConnection.query",
+      "fingerprint": "d4535b9ae1446f5140d9e9a97a558a2f35fa8f9cefeb15d9be895a10c7c1699e"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityStore.ready",
+      "fingerprint": "e0fd50d0f1358d8d3358df3f5222d3c79c5ba52939030f61fad8b1b7749830fb"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityStore.pending",
+      "fingerprint": "78fba53592b85c5f5a1eed48f7a29488999673cd3f2a589c47214ddf7fa136ba"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityStore.consume",
+      "fingerprint": "a2abf9edcba15533bdcdfe63932abcfaf1b1f6e9787bcf2251bcc8acf06d887b"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityStore.session",
+      "fingerprint": "9898e0d44f6ea5cd4517fcaf95bbb690e9260c88b7d3c012a615b427ed051936"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityStore.principal",
+      "fingerprint": "a6fc8a6d75bd70f49086285c815b8472baa9f44dec4a6ef4684c4ec15e082764"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "SessionService.login",
+      "fingerprint": "5efcf6c22b9bfb22a6665585a2bf2348a7f0c3e8d0d4d919af27d790b503d849"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "SessionService.callback",
+      "fingerprint": "713494d1d9741582dc6c3ba9dcea3f3daf76f82b86e5fe9961ccef44ad028e69"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "StorePlugin.[Service.init]",
+      "fingerprint": "3e89c1e54bec22976c6fc905e627fc1829dc1839ad71b291ab0054a9ff735f85"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "OidcPlugin.[Service.init]",
+      "fingerprint": "50cd0947ff60ef541e315383effe0f09eb1aa67de90b5eda2b0fdd954d12896f"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityComposition.static registrations",
+      "fingerprint": "5de0b764cc2793ff4e1c510c649fa465d23c5f574aaf20a73ab886cf5cba8a3d"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityBuild.static package",
+      "fingerprint": "10cc88a1a7d2c6cd518752f62570a139f819f1edb868921fe536790cf2ef8e79"
+    },
+    {
+      "file": "src/identity.ts",
+      "symbol": "IdentityBuild.static run",
+      "fingerprint": "1a3e32a1a2e0a6fe8a425876ba78d478f9a49225b1601904de66c5e175ae4648"
+    },
+    {
+      "file": "src/services.ts",
+      "symbol": "KeycloakServicePlugin.constructor",
+      "fingerprint": "359894c61b63833fd04f0d08b1d09e3dc34dae564e7dcae0fd52fc74814607fa"
+    },
+    {
+      "file": "src/services.ts",
+      "symbol": "KeycloakServicePlugin.[Service.init]",
+      "fingerprint": "8c42439be2129bb44b0212c66027e41a82f9848f9f213a81ce3c3aa00eae6d2a"
+    },
+    {
+      "file": "src/services.ts",
+      "symbol": "DiscoveryBody.static read",
+      "fingerprint": "74c6f584ecf9938fd5d8be1b6a871f7606988bbf18322d9b424adc2193340f57"
+    },
+    {
+      "file": "src/services.ts",
+      "symbol": "KeycloakReadinessPlugin.constructor",
+      "fingerprint": "badd69419ada1ef43b311ebfa5ec58b2aed5e0cf7f95cdde50984d80f1bd6bd4"
+    },
+    {
+      "file": "src/services.ts",
+      "symbol": "KeycloakReadinessPlugin.observe",
+      "fingerprint": "c2ed689a7312e2e62085a105f9e1ed2fa3a9b868719617ff413900961d3bbf95"
+    },
+    {
+      "file": "tests/acceptance/identity.test.ts",
+      "symbol": "IdentityTestsAcceptance.program",
+      "fingerprint": "46e3d551eb3c855a7f183beae5cffd59d5100259aaf4b0849fb1d4ecda301483"
+    },
+    {
+      "file": "tests/acceptance/selected-endpoint.test.ts",
+      "symbol": "SelectedEndpointTestsAcceptance.program",
+      "fingerprint": "32463d3ad90c78e8009226da7019de84ea347630bda07b87ac78e40d41178d6c"
+    },
+    {
+      "file": "tests/acceptance/services.test.ts",
+      "symbol": "ServicesTestsAcceptance.program",
+      "fingerprint": "b70e8b2155b5bdf95648129784ec2ccfef4efd64963917abd8b641314052c909"
+    },
+    {
+      "file": "tests/integration/identity.test.ts",
+      "symbol": "IdentityTestsIntegration.metadata",
+      "fingerprint": "44d774ca520a3a71f8cde3ebbd50edc40c68ce2209d321ecc3c4325ca0f604f7"
+    },
+    {
+      "file": "tests/integration/services.test.ts",
+      "symbol": "ServicesTestsIntegration.probe",
+      "fingerprint": "7617e036342682ad1e67c18624509ab80e3a1f972ed5eb039fd7398903c243ab"
+    },
+    {
+      "file": "tests/regression/test-layout.test.ts",
+      "symbol": "TestLayoutRegression.check",
+      "fingerprint": "58a1e54d5b4d5e806480547f2c44fc7fd4a30b548e11033ce1aec339518628f4"
+    },
+    {
+      "file": "tests/regression/test-layout.test.ts",
+      "symbol": "TestLayoutRegression.discovery",
+      "fingerprint": "9a2d5796d031c1f6b33cfe9b537b6ebaacb870e3bcdf578110c016bbc44dca2d"
+    },
+    {
+      "file": "tests/regression/test-layout.test.ts",
+      "symbol": "TestLayoutRegression.matrix",
+      "fingerprint": "ec2572e83c489f133b4c787afaaa99cc1106c22b8e76a2cbbc5dae077a23c0c5"
+    },
+    {
+      "file": "tests/regression/test-layout.test.ts",
+      "symbol": "TestLayoutRegression.partitions",
+      "fingerprint": "99923590bc7eb9c1f0b70fd32403786ecdc51b98ed1eec4241ae1a0693c17dcd"
+    },
+    {
+      "file": "tests/regression/test-layout.test.ts",
+      "symbol": "TestLayoutRegression.support",
+      "fingerprint": "e933ea0a60e46f10d31f0368c7d6413a5b60d3e5b392dca3f3c18daa81cb0966"
+    },
+    {
+      "file": "tests/support/services-test-support.ts",
+      "symbol": "DiscoveryFixture.respond",
+      "fingerprint": "f1fc551eac55523d674b3b8563f77e35a3bd22b593fad6a714cce5e47b016258"
+    },
+    {
+      "file": "tests/support/services-test-support.ts",
+      "symbol": "DiscoveryFixture.credential",
+      "fingerprint": "e3317a87fefe647b8319f782366eb359ed52fbe9b10213c48f5ea105f73fca50"
+    },
+    {
+      "file": "tests/support/services-test-support.ts",
+      "symbol": "DiscoveryFixture.authority",
+      "fingerprint": "fd1c4ad5b9ac9902bf58602abe3c1ef0bfa6f4b684b90e7caddad72624e87dc0"
+    },
+    {
+      "file": "tests/unit/identity.test.ts",
+      "symbol": "IdentityTestsUnit.boundaries",
+      "fingerprint": "1feb928934f07bf07d5592dc90b384674512c5336be33281a4906079b5e0d37d"
+    },
+    {
+      "file": "tests/unit/selected-endpoint.test.ts",
+      "symbol": "SelectedEndpointTestsUnit.denied",
+      "fingerprint": "fc817157741011e05296eb2528f13e303f7697dd7245ab0251a062545f058837"
+    },
+    {
+      "file": "tests/unit/services.test.ts",
+      "symbol": "ServicesTestsUnit.metadata",
+      "fingerprint": "79e92efe4ad753aedbe4a81c22e121a54a58a3ac46e6c0f1f313b1168ddf32ff"
+    }
+  ],
+  "exceptions": []
+}
