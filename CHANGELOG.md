@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Changed
+- Select the availability-ready SDK identity closure (#60).
+
+### Changed
 - Qualify Identity against the exact manager-compatible SDK closure (#57).
 
 ### Changed
