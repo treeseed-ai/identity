@@ -2,15 +2,19 @@
 
 ## Task 3D contract compatibility
 
-Issue #57 qualifies Identity `.9` against accepted SDK `0.0.0-cordis.42`, source
-`afdfac7bdd3c9c1f783362cd1d50324181e1d725`, SHA-256
-`0ecfe599916fe8ef364fc4b73203c810981f163109fbe71a0dd4c01a9dfb7bbc`.
-Installed bytes, peer and source/archive identity must agree. Built public compatibility requires
-capacity-channel version `1.1.0-cordis.1`, seed/capacity contracts and the unchanged seven global
-platform operations. Existing OIDC/session/discovery and native Keycloak provider suites remain
-required. This selects the manager/worker-compatible closure; it adds no authority or enrollment
-implementation. Approval, credentials, issuer and subject custody stay behind existing protocols.
-Historical SDK .19 and Identity .8 artifacts remain immutable. All issues remain open.
+Under #60, qualify Identity `.10` against accepted SDK `0.0.0-cordis.44`, source
+`00be028b92998f8d7039a3906e784c6b8598e730`, archive SHA-256
+`d95c54cf6081c7634498dfb4f3235d42d65b8664a5d62cc87c4dd4e85381f0f3`.
+Installed bytes, peer, provenance, vendor and lock must agree. Advance the owner package metadata
+identity together. Built public compatibility preserves manager channel1.1.0-cordis.1, capacity
+and seed contracts, seven global operations and existing native Keycloak/OIDC/session/discovery
+providers. Preserve exact issuer, subject, team, provider, grant and credential boundaries.
+No new live authority or enrollment protocol is introduced by this dependency selection.
+
+Commit documentation before outside-in exact-selection tests and archive adoption; require owner
+checks/build/all four complete tiers, independent strict public archive consumption, hosted gates
+and review. Keep Identity9/SDK42 and older archives immutable. All issues remain open; productive
+Work/models stay Task10. No production publication, legacy mutation or cutover.
 
 Task 3C's current Identity candidate consumes SDK .12 from
 `4a0b12ca45478f58d92a02de4a7c144ed94c7417`, archive SHA-256
