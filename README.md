@@ -2,14 +2,15 @@
 
 ## Task 3D contract compatibility
 
-Issue #57 advances this package to SDK `0.0.0-cordis.19` through the exact public archive
-from `90cf4f3cc62e166685280450c727499defd2af5b`, SHA-256
-`93dd549c98aba180306e9b19cc1cbc37494544b2764ed341c531c9af618c6f81`.
-The accepted archive, installed version and peer pin must agree. This qualifies existing
-Keycloak/OIDC provider behavior against the shared seed/capacity contract candidate; it does
-not introduce a new identity authority, implement Agent enrollment or claim Task 3D completion.
-Approval and provider credentials remain governed by their existing owner protocols.
-Historical artifacts remain immutable. All issues remain open until authorized release.
+Issue #57 qualifies Identity `.9` against accepted SDK `0.0.0-cordis.42`, source
+`afdfac7bdd3c9c1f783362cd1d50324181e1d725`, SHA-256
+`0ecfe599916fe8ef364fc4b73203c810981f163109fbe71a0dd4c01a9dfb7bbc`.
+Installed bytes, peer and source/archive identity must agree. Built public compatibility requires
+capacity-channel version `1.1.0-cordis.1`, seed/capacity contracts and the unchanged seven global
+platform operations. Existing OIDC/session/discovery and native Keycloak provider suites remain
+required. This selects the manager/worker-compatible closure; it adds no authority or enrollment
+implementation. Approval, credentials, issuer and subject custody stay behind existing protocols.
+Historical SDK .19 and Identity .8 artifacts remain immutable. All issues remain open.
 
 Task 3C's current Identity candidate consumes SDK .12 from
 `4a0b12ca45478f58d92a02de4a7c144ed94c7417`, archive SHA-256
