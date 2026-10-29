@@ -120,7 +120,7 @@ export class IdentityBuild {
   ];
   static package() {
     return PackageDefinition.define(
-      '@treeseed-cordis/identity', '0.0.0-cordis.8', 'identity', this.packageExports,
+      '@treeseed-cordis/identity', '0.0.0-cordis.9', 'identity', this.packageExports,
       [], [KeycloakServicePlugin.image],
     );
   }
